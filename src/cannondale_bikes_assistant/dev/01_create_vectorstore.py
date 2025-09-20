@@ -119,7 +119,7 @@ embedding_function = OpenAIEmbeddings(
 vectorstore = Chroma.from_documents(
     documents = documents,
     embedding = embedding_function,
-    persist_directory = str(PROJECT_00_CHALLENGES_DIR / "cannondale_project" / "database" / "bikes_vectorstore"),
+    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"),
     collection_name = "bikes"
 )
 
@@ -181,3 +181,4 @@ rag_chain = (
 # - Test RAG Chain ----
 result1 = rag_chain.invoke("Describe the moterra sl lab71 in detail")
 print(result1)
+

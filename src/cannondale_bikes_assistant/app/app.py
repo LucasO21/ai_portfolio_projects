@@ -37,7 +37,7 @@ from global_utilities.keys import get_env_key
 OPENAI_API_KEY = get_env_key("openai")
 
 # - Vectorstore Path ----
-persist_directory = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes"
+persist_directory = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
 
 
 # Initialize the Streamlit app
@@ -188,9 +188,9 @@ if 'agent_executor' not in st.session_state:
 
             # Combine summary with image URL
             if bike_image_url and bike_image_url != 'No image available':
-                return f"{summary_result}\n\n🖼️ **Bike Image:** {bike_image_url}"
+                return f"{summary_result}\n\n🚲 **Bike Image:** {bike_image_url}"
             else:
-                return f"{summary_result}\n\n🖼️ **Bike Image:** No image available"
+                return f"{summary_result}\n\n🚲 **Bike Image:** No image available"
 
         # Tool 2: Detailed Bike Description Tool
         @tool
@@ -261,9 +261,9 @@ if 'agent_executor' not in st.session_state:
                 additional_info += f"\n• **Color:** {bike_color}"
 
             if bike_image_url and bike_image_url != 'No image available':
-                additional_info += f"\n• **🖼️ Bike Image:** {bike_image_url}"
+                additional_info += f"\n• **🚲 Bike Image:** {bike_image_url}"
             else:
-                additional_info += f"\n• **🖼️ Bike Image:** No image available"
+                additional_info += f"\n• **🚲 Bike Image:** No image available"
 
             return f"{detail_result}{additional_info}"
 

@@ -26,24 +26,20 @@ from src.global_utilities.paths import CANNONDALE_BIKES_ASSISTANT_DIR
 # ------------------------------------------------------------------------------
 OPENAI_API_KEY = get_env_key("openai")
 EMBEDDING_MODEL = "text-embedding-ada-002"
-VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_webscraped"
+VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
 
 # ------------------------------------------------------------------------------
 # VECTORSTORE ----
 # ------------------------------------------------------------------------------
 # Note: Vectorstore was created in another project and then copied to this project.
 
+embedding_function = OpenAIEmbeddings(model = EMBEDDING_MODEL, api_key = OPENAI_API_KEY)
+
 vectorstore = Chroma(
     persist_directory = str(VECTORSTORE_PATH),
-    embedding_function = OpenAIEmbeddings(model = EMBEDDING_MODEL, api_key = OPENAI_API_KEY),
+    embedding_function = embedding_function,
     # collection_name = "bikes"
 )
-
-import chromadb
-client = chromadb.PersistentClient(path=str(VECTORSTORE_PATH))
-collections = client.list_collections()
-for col in collections:
-    print(f"Collection: {col.name}, Count: {col.count()}")
 
 
 # ------------------------------------------------------------------------------
@@ -56,7 +52,8 @@ retriever = vectorstore.as_retriever(
     }
 )
 
-retriever.invoke("What is a good bike under $1000?")
+results = retriever.invoke("SuperSix EVO road bike")
+print(f"Retrieved {len(results)} documents")
 
 # ------------------------------------------------------------------------------
 # RAG PIPELINE ----
