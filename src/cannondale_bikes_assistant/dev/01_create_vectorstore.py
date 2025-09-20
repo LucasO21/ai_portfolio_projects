@@ -105,6 +105,11 @@ print(documents[10].metadata)
 
 print(documents[10].page_content)
 
+documents[0].metadata.get('bike_name')
+
+[doc for doc in documents if doc.metadata.get('bike_model') == 'Moterra SL LAB71']
+
+
 # ------------------------------------------------------------------------------
 # VECTOR DATABASE ---
 # ------------------------------------------------------------------------------
