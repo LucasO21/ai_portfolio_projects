@@ -7,6 +7,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
@@ -40,7 +41,7 @@ from global_utilities.keys import get_env_key
 OPENAI_API_KEY = get_env_key("openai")
 
 # - Vectorstore Path ----
-VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_2"
+VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
 
 # - Embedding Model ----
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -100,7 +101,7 @@ if 'total_cost' not in st.session_state:
 
 
 # Helper Functions for Image Display ----
-def is_valid_image_url(url):
+def is_valid_image_url():
     """Check if URL is reachable and points to an image."""
     try:
         response = requests.head(url, timeout=5)
@@ -115,7 +116,7 @@ def extract_url_from_text(text: str):
 
 
 # - Create Rag Chain ----
-def create_rag_chain():
+def create_rag_chain(msgs):
 
     # - Embedding Function ----
     embedding_function = OpenAIEmbeddings(
@@ -146,7 +147,9 @@ def create_rag_chain():
     contextualize_q_system_prompt = """Given a chat history and the latest user question \
     which might reference context in the chat history, formulate a standalone question \
     which can be understood without the chat history. Do NOT answer the question, \
-    just reformulate it if needed and otherwise return it as is."""
+    just reformulate it if needed and otherwise return it as is.
+
+    """
 
     contextualize_q_prompt = ChatPromptTemplate.from_messages([
         ("system", contextualize_q_system_prompt),

@@ -90,7 +90,7 @@ for item in bikes_dict:
     display: {item.get("display")}
     certifications: {item.get("certifications")}
     brake_type: {item.get("brake_type")}
-    bike_image_url: {item.get("main_image")}
+    bike_image_url: {item.get("bike_image_url")}
     """
     # print(content)
 
@@ -125,7 +125,7 @@ embedding_function = OpenAIEmbeddings(
 vectorstore = Chroma.from_documents(
     documents = documents,
     embedding = embedding_function,
-    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"),
+    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_3"),
     collection_name = "bikes"
 )
 
