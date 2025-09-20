@@ -23,11 +23,11 @@ from src.global_utilities.paths import CANNONDALE_BIKES_ASSISTANT_DIR
 # Constants ----
 OPENAI_API_KEY = get_env_key("openai")
 EMBEDDING_MODEL = "text-embedding-ada-002"
-VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
+VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_2"
 
 
 # Load Scraped Data ----
-csv_path = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "csv" / "bikes_with_beautifulsoup_final.csv"
+csv_path = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "csv" / "bikes_version_2.csv"
 
 bikes_df = pd.read_csv(csv_path)
 
@@ -80,7 +80,6 @@ for item in bikes_dict:
     seatpost: {item.get("seatpost")}
     wheel_sensor: {item.get("wheel_sensor")}
     extra_1: {item.get("extra_1")}
-    bike_image_url: {item.get("bike_image_url")}
     hubs: {item.get("hubs")}
     ingestion_hazard: {item.get("ingestion_hazard")}
     rear_shock: {item.get("rear_shock")}
@@ -90,6 +89,7 @@ for item in bikes_dict:
     display: {item.get("display")}
     certifications: {item.get("certifications")}
     brake_type: {item.get("brake_type")}
+    bike_image_url: {item.get("main_image")}
     """
     # print(content)
 
@@ -101,9 +101,9 @@ documents
 
 len(documents)
 
-print(documents[0].metadata)
+print(documents[10].metadata)
 
-print(documents[0].page_content)
+print(documents[10].page_content)
 
 # ------------------------------------------------------------------------------
 # VECTOR DATABASE ---
@@ -119,7 +119,7 @@ embedding_function = OpenAIEmbeddings(
 vectorstore = Chroma.from_documents(
     documents = documents,
     embedding = embedding_function,
-    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"),
+    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_2"),
     collection_name = "bikes"
 )
 

@@ -170,6 +170,7 @@ if 'agent_executor' not in st.session_state:
             - Include price if available
             - Maximum 4 sentences
             - After the brief summary, include 4 - 5 bullet points of the most important features and specs of the bike.
+            - Include the bike image url as a clickable link.
 
             Summary:
             """
@@ -235,6 +236,7 @@ if 'agent_executor' not in st.session_state:
             - Describe the bike's intended use and performance characteristics
             - Include any special technologies or features
             - Be thorough and technical in your response
+            - Include the bike image url as a clickable link.
 
             Detailed Description:
             """
