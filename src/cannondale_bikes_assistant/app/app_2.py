@@ -1,7 +1,7 @@
-# CHALLENGE: BUILD A CANNONDALE BIKE EXPERT WITH SPECIALIZED TOOLS
-# WEBSITE: https://www.cannondale.com/en-us
+# # CHALLENGE: BUILD A CANNONDALE BIKE EXPERT WITH SPECIALIZED TOOLS
+# # WEBSITE: https://www.cannondale.com/en-us
 
-# streamlit run PROJECT_00_CHALLENGES/cannondale_project/05_cannondale_tools_app.py
+# # streamlit run PROJECT_00_CHALLENGES/cannondale_project/05_cannondale_tools_app.py
 
 from langchain_community.vectorstores import Chroma
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
@@ -20,6 +20,7 @@ import streamlit as st
 import requests
 import re
 import yaml
+from pprint import pprint
 import uuid
 import os
 import sys
@@ -159,8 +160,9 @@ def create_rag_chain():
     # - QA System Prompt ----
     qa_system_prompt = """You are an assistant for question-answering tasks about bike models. \
     Use the following pieces of retrieved context to answer the question concisely. \
-    If a bike_image_url is available, include it in the answer by stating 'Main Image URL: [URL]'. \
-    If you don't know the answer, say so. Keep the answer to three sentences maximum.\
+    If you find a main_image in the context metadata, include the actual URL in your answer by stating 'Main Image URL: ' followed by the complete URL. \
+    Look for the main_image field in the provided context and use its exact value. \
+    If you don't know the answer, say so. Keep the answer to three sentences maximum.
 
     {context}"""
 
@@ -184,6 +186,29 @@ def create_rag_chain():
         history_messages_key="chat_history",
         output_messages_key="answer",
     ), retriever
+
+
+#! Testing
+# test_msgs = ChatMessageHistory()
+# rag_chain, retriever = create_rag_chain(test_msgs)
+# test_question = "Tell me about the Moterra SL LAB71"
+# result = rag_chain.invoke(
+#     {"input": test_question},
+#     config={"configurable": {"session_id": "test_session"}}
+# )
+# pprint(result['answer'])
+
+# print("=== CONTEXT DEBUG ===")
+# print(f"Number of context documents: {len(result['context'])}")
+
+# for i, doc in enumerate(result["context"]):
+#     print(f"\nDocument {i}:")
+#     print(f"Content preview: {doc.page_content[:200]}...")
+#     print(f"Metadata keys: {list(doc.metadata.keys())}")
+#     print(f"bike_image_url: {doc.metadata.get('bike_image_url', 'NOT FOUND')}")
+#     print(f"main_image: {doc.metadata.get('main_image', 'NOT FOUND')}")
+
+#! end testing
 
 # Create RAG chain and retriever ----
 rag_chain, retriever = create_rag_chain()
@@ -284,4 +309,3 @@ with st.sidebar:
         st.rerun()
 
 st.markdown("---")
-

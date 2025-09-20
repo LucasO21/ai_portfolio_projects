@@ -15,6 +15,7 @@ from langchain_community.document_loaders import WebBaseLoader
 import pandas as pd
 import yaml
 from pathlib import Path
+from pprint import pprint
 
 from src.global_utilities.keys import get_env_key
 from src.global_utilities.paths import CANNONDALE_BIKES_ASSISTANT_DIR
@@ -23,17 +24,17 @@ from src.global_utilities.paths import CANNONDALE_BIKES_ASSISTANT_DIR
 # Constants ----
 OPENAI_API_KEY = get_env_key("openai")
 EMBEDDING_MODEL = "text-embedding-ada-002"
-VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_2"
+VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
 
 
 # Load Scraped Data ----
 csv_path = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "csv" / "bikes_version_2.csv"
 
-bikes_df = pd.read_csv(csv_path)
+bikes_df = pd.read_csv(csv_path).drop(columns = ["bike_image_url", "alternate_image"])
 
 bikes_df.head()
 
-bikes_df = bikes_df.rename(columns = {"platform": "bike_name", "model_name": "bike_model"})
+bikes_df = bikes_df.rename(columns = {"platform": "bike_name", "model_name": "bike_model", "main_image": "bike_image_url"})
 
 bikes_dict = bikes_df.to_dict(orient='records')
 
@@ -124,7 +125,7 @@ embedding_function = OpenAIEmbeddings(
 vectorstore = Chroma.from_documents(
     documents = documents,
     embedding = embedding_function,
-    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_2"),
+    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"),
     collection_name = "bikes"
 )
 
@@ -134,13 +135,20 @@ vectorstore.persist()
 # RETRIEVER ----
 # ------------------------------------------------------------------------------
 
+# Connect to Vectorstore ----
+# vectorstore = Chroma(
+#     persist_directory =  str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"),
+#     embedding_function = embedding_function,
+#     collection_name = "bikes"
+# )
+
 # Retriever ----
 retriever = vectorstore.as_retriever(
     search_type = "similarity",
     search_kwargs = {"k": 5}
 )
 
-results = retriever.invoke("SuperSix EVO road bike")
+results = retriever.invoke("Moterra SL LAB71")
 print(f"Retrieved {len(results)} documents")
 
 
@@ -184,6 +192,9 @@ rag_chain = (
 )
 
 # - Test RAG Chain ----
-result1 = rag_chain.invoke("Describe the moterra sl lab71 in detail")
-print(result1)
+result1 = rag_chain.invoke("Describe the Moterra SL LAB71")
+pprint(result1)
+
+result2 = rag_chain.invoke("Give me the bike_image_url of the Moterra SL LAB71")
+pprint(result2)
 
