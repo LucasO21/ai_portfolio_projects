@@ -3,9 +3,9 @@ import sys
 from pathlib import Path
 
 
-ROOT_DIR = Path(__file__).resolve().parent.absolute().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent.absolute().parent.parent.absolute()
 
-CANNONDALE_BIKES_ASSISTANT_DIR = ROOT_DIR / "cannondale_bikes_assistant"
+CANNONDALE_BIKES_ASSISTANT_DIR = ROOT_DIR / "src" / "cannondale_bikes_assistant"
 
 # DATABASE_DIR = ROOT_DIR / "database/"
 
