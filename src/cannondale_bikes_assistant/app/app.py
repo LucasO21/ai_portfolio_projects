@@ -37,7 +37,7 @@ from global_utilities.keys import get_env_key
 OPENAI_API_KEY = get_env_key("openai")
 
 # - Vectorstore Path ----
-persist_directory = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
+persist_directory = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_2"
 
 
 # Initialize the Streamlit app
