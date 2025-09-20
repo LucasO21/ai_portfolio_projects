@@ -73,17 +73,17 @@ st.write("---")
 # Sample Questions Expander
 sample_summary_questions = """
     - Give me a quick summary of the Moterra SL LAB71
-    - Describe the SuperSix EVO in detail with full specifications
     - Tell me about the Scalpel mountain bike
     - What's a good road bike for racing?
     - Compare the Synapse and CAAD13 models
+    - List 3 road bikes under $10,000 suitable for an adult
 """
 
 sample_detailed_questions = """
     - Show me details about gravel bikes under $3000
     - What are the key features of electric mountain bikes?
-    - Quick overview of the Topstone Carbon
-    - Detailed specs for the Jekyll enduro bike
+    - Describe the Topstone Carbon 1 RLE in detail
+    - Detailed specs for the Jekyll 1 bike
     - What hybrid bikes are good for commuting?
 """
 

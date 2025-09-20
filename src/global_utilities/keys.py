@@ -5,22 +5,7 @@ import yaml
 from dotenv import load_dotenv
 
 
-
-
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
-# LLM API Key as Environment Variable ----
-# def set_env_variables(key = "openai"):
-
-#     if key == "openai":
-#         try:
-#             os.environ['OPENAI_API_KEY'] = yaml.safe_load(open(CREDENTIALS_DIR))['openai']
-#             print("OpenAI API key set successfully.")
-
-#         except Exception as e:
-#             print(f"Error setting environment variables: {e}")
-
-
+# Get Environment Key ----
 def get_env_key(key = "openai"):
 
     load_dotenv()
