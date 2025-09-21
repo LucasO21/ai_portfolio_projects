@@ -3,6 +3,7 @@
 
 # # streamlit run PROJECT_00_CHALLENGES/cannondale_project/05_cannondale_tools_app.py
 
+# Libraries ----
 from langchain_community.vectorstores import Chroma
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
@@ -36,7 +37,7 @@ from global_utilities.paths import CANNONDALE_BIKES_ASSISTANT_DIR
 from global_utilities.keys import get_env_key
 
 
-# Variables ----
+# Static Variables ----
 
 # - Load API Key ----
 OPENAI_API_KEY = get_env_key("openai")
@@ -117,7 +118,7 @@ def extract_url_from_text(text: str):
 
 
 
-# - Create Rag Chain ----
+# Create RAG Chain ----
 def create_rag_chain():
 
     # - Embedding Function ----
