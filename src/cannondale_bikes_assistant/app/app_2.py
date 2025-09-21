@@ -192,6 +192,22 @@ def create_rag_chain():
     Look for the bike_image_url field in the provided context and use its exact value. \
     If you don't know the answer, say so. Keep the answer to three sentences maximum.
 
+    By default, provide  a CONCISE SUMMARY (3-4 sentences max) of the bike based on the context.
+    - Keep it brief and focused on the most important features
+    - Mention bike type, key technology, and target use
+    - Include price if available
+    - Maximum 4 sentences
+    - After the brief summary, include 4 - 5 bullet points of the most important features and specs of the bike.
+
+    If the user asks for a detailed description, provide a COMPREHENSIVE, DETAILED description of the bike based on the context.
+    - Provide extensive technical specifications
+    - Include frame details, components, and drivetrain information
+    - Mention pricing, colors, and model variations if available
+    - Describe the bike's intended use and performance characteristics
+    - Include any special technologies or features
+    - Be thorough and technical in your response
+
+
     {context}"""
 
     qa_prompt = ChatPromptTemplate.from_messages([
