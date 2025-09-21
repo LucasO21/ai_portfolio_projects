@@ -42,7 +42,7 @@ from global_utilities.keys import get_env_key
 OPENAI_API_KEY = get_env_key("openai")
 
 # - Vectorstore Path ----
-VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_3"
+VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
 
 # - Embedding Model ----
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -61,7 +61,7 @@ st.markdown("*Powered by AI Tools - Your intelligent Cannondale bike expert*")
 # Set up Chat Memory
 msgs = StreamlitChatMessageHistory(key="bike_expert_messages")
 if len(msgs.messages) == 0:
-    msgs.add_ai_message("🚴‍♂️ Hi! I'm your Cannondale bike expert with specialized analysis tools. I can provide quick summaries or detailed technical specifications. What would you like to know?")
+    msgs.add_ai_message("🚴‍♂️ Hi! I'm your Cannondale bike expert. I can provide quick summaries or detailed technical specifications. What would you like to know?")
 
 st.write("---")
 
@@ -180,7 +180,8 @@ def create_rag_chain():
     # - Create QA Chain ----
     document_prompt = PromptTemplate.from_template("Content:\n{page_content}\n\nMetadata:\n{metadata}")
 
-    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt, document_prompt=document_prompt)
+    # question_answer_chain = create_stuff_documents_chain(llm, qa_prompt, document_prompt=document_prompt)
+    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 
     # - Combine RAG + History Aware Retriever ----
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
@@ -233,7 +234,7 @@ if question := st.chat_input("Ask about any Cannondale bike..."):
         st.write(question)
 
     # Then show spinner while processing AI response
-    with st.spinner("🔍 Analyzing with AI tools..."):
+    with st.spinner("🔍 Analyzing. Hang tight..."):
 
         # Get response from agent with token tracking
         try:
