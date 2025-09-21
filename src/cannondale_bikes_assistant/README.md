@@ -21,7 +21,7 @@ This project demonstrates a **Retrieval-Augmented Generation (RAG)** system buil
 
 ### 🏗️ **System Architecture**
 
-![App Homepage](png/app_homepage_screenshot.png)
+<img src="png/app_homepage_screenshot.png" alt="App Homepage" style="box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; max-width: 100%;" />
 
 
 #### **RAG Pipeline Components**
@@ -45,7 +45,7 @@ This project demonstrates a **Retrieval-Augmented Generation (RAG)** system buil
 ### 🚀 **Key Features**
 
 #### **1. Smart Query Processing**
-![QA System Prompt](png/qa_system_prompt_screenshot.png)
+<img src="png/qa_system_prompt_screenshot.png" alt="QA System Prompt" style="box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; max-width: 100%;" />
 
 The system employs a **two-stage retrieval process**:
 - **Context Reformulation**: Converts follow-up questions into standalone queries
@@ -53,7 +53,7 @@ The system employs a **two-stage retrieval process**:
 - **Response Generation**: Synthesizes answers with proper source attribution
 
 #### **2. Conversational Memory & Context**
-![Follow-up Memory Example](png/follow_up_memory_example_screenshot.png)
+<img src="png/follow_up_memory_example_screenshot.png" alt="Follow-up Memory Example" style="box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; max-width: 100%;" />
 
 **Memory Implementation**:
 - Persistent chat history across user sessions
@@ -63,10 +63,10 @@ The system employs a **two-stage retrieval process**:
 #### **3. Dual Response Modes**
 
 **Summary Mode** - Quick overviews for rapid decision-making:
-![Summary Example](png/summary_example%20screenshot.png)
+<img src="png/summary_example%20screenshot.png" alt="Summary Example" style="box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; max-width: 100%;" />
 
 **Detailed Analysis** - Comprehensive technical specifications:
-![Detailed Example](png/detailed_example_screenshot.png)
+<img src="png/detailed_example_screenshot.png" alt="Detailed Example" style="box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; max-width: 100%;" />
 
 ---
 
@@ -99,7 +99,7 @@ document_prompt = PromptTemplate.from_template(
 ### 📊 **Additional Features**
 
 #### **Cost Monitoring & Analytics**
-![Token Usage Tracking](png/token_usage_calculation_screenshot.png)
+<img src="png/token_usage_calculation_screenshot.png" alt="Token Usage Tracking" style="box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; max-width: 100%;" />
 
 Real-time tracking of:
 - Prompt tokens consumed
