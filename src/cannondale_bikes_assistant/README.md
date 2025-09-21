@@ -21,7 +21,7 @@ This project demonstrates a **Retrieval-Augmented Generation (RAG)** system buil
 
 ### 🏗️ **System Architecture**
 
-![App Homepage](src/cannondale_bikes_assistant/png/app_homepage_screenshot.png)
+![App Homepage](png/app_homepage_screenshot.png)
 
 
 #### **RAG Pipeline Components**
