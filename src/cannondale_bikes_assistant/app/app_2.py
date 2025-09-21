@@ -16,6 +16,7 @@ from langchain.agents import create_openai_functions_agent, AgentExecutor
 from langchain.callbacks import get_openai_callback
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import PromptTemplate
 
 import streamlit as st
 import requests
@@ -41,7 +42,7 @@ from global_utilities.keys import get_env_key
 OPENAI_API_KEY = get_env_key("openai")
 
 # - Vectorstore Path ----
-VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
+VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_3"
 
 # - Embedding Model ----
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -101,22 +102,23 @@ if 'total_cost' not in st.session_state:
 
 
 # Helper Functions for Image Display ----
-def is_valid_image_url():
-    """Check if URL is reachable and points to an image."""
+def is_valid_image_url(url: str) -> bool:
     try:
-        response = requests.head(url, timeout=5)
-        return response.status_code == 200 and 'image' in response.headers.get('content-type', '').lower()
+        r = requests.head(url, timeout=5, allow_redirects=True)
+        ct = r.headers.get("content-type","").lower()
+        return r.status_code == 200 and "image" in ct
     except requests.RequestException:
         return False
 
+
 def extract_url_from_text(text: str):
-    """Extract the first http/https URL from text if present."""
-    match = re.search(r'(https?://\S+)', text)
-    return match.group(1) if match else None
+    m = re.search(r'(https?://[^\s)>\]]+)', text)
+    return m.group(1) if m else None
+
 
 
 # - Create Rag Chain ----
-def create_rag_chain(msgs):
+def create_rag_chain():
 
     # - Embedding Function ----
     embedding_function = OpenAIEmbeddings(
@@ -163,8 +165,8 @@ def create_rag_chain(msgs):
     # - QA System Prompt ----
     qa_system_prompt = """You are an assistant for question-answering tasks about bike models. \
     Use the following pieces of retrieved context to answer the question concisely. \
-    If you find a main_image in the context metadata, include the actual URL in your answer by stating 'Main Image URL: ' followed by the complete URL. \
-    Look for the main_image field in the provided context and use its exact value. \
+    If you find a bike_image_url in the context metadata, include the actual URL in your answer by stating 'Main Image URL: ' followed by the complete URL. \
+    Look for the bike_image_url field in the provided context and use its exact value. \
     If you don't know the answer, say so. Keep the answer to three sentences maximum.
 
     {context}"""
@@ -176,7 +178,9 @@ def create_rag_chain(msgs):
     ])
 
     # - Create QA Chain ----
-    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+    document_prompt = PromptTemplate.from_template("Content:\n{page_content}\n\nMetadata:\n{metadata}")
+
+    question_answer_chain = create_stuff_documents_chain(llm, qa_prompt, document_prompt=document_prompt)
 
     # - Combine RAG + History Aware Retriever ----
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)

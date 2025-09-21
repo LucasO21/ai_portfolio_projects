@@ -125,7 +125,7 @@ embedding_function = OpenAIEmbeddings(
 vectorstore = Chroma.from_documents(
     documents = documents,
     embedding = embedding_function,
-    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_3"),
+    persist_directory = str(CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"),
     collection_name = "bikes"
 )
 
