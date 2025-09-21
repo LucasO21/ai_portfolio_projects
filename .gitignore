@@ -1,4 +1,6 @@
 .env
 database/
-cannondale_bikes_assistant/
 src/cannondale_bikes_assistant/app/app.py
+
+# Allow PNG screenshots for README
+!src/cannondale_bikes_assistant/png/*.png
