@@ -122,16 +122,16 @@ from pprint import pprint
 import re
 
 # Path Setup - adjust these paths to match your setup
-project_root = Path(__file__).resolve().parents[2]  # Adjust if needed
-sys.path.append(str(project_root))
+# project_root = Path(__file__).resolve().parents[2]  # Adjust if needed
+# sys.path.append(str(project_root))
 
-from global_utilities.paths import CANNONDALE_BIKES_ASSISTANT_DIR
-from global_utilities.keys import get_env_key
+from src.global_utilities.paths import CANNONDALE_BIKES_ASSISTANT_DIR
+from src.global_utilities.keys import get_env_key
 
 
 # Variables
 OPENAI_API_KEY = get_env_key("openai")
-VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore_3"
+VECTORSTORE_PATH = CANNONDALE_BIKES_ASSISTANT_DIR / "database" / "bikes_vectorstore"
 EMBEDDING_MODEL = "text-embedding-ada-002"
 
 print("=== TESTING RAG PIPELINE ===")
@@ -219,7 +219,7 @@ print("✓ Created history aware retriever")
 qa_system_prompt = """You are an assistant for question-answering tasks about bike models. \
 Use the following pieces of retrieved context to answer the question concisely. \
 If you find a bike_image_url in the context metadata, include the actual URL in your answer by stating 'Main Image URL: ' followed by the complete URL. \
-Look for the main_image field in the provided context and use its exact value. \
+Look for the bike_image_url field in the provided context and use its exact value. \
 If you don't know the answer, say so. Keep the answer to three sentences maximum.
 
 {context}"""
@@ -234,7 +234,8 @@ qa_prompt = ChatPromptTemplate.from_messages([
 document_prompt = PromptTemplate.from_template("Content:\n{page_content}\n\nMetadata:\n{metadata}")
 
 # Create QA chain
-question_answer_chain = create_stuff_documents_chain(llm, qa_prompt, document_prompt=document_prompt)
+# question_answer_chain = create_stuff_documents_chain(llm, qa_prompt, document_prompt=document_prompt)
+question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 print("✓ Created QA chain")
 
 # Create RAG chain

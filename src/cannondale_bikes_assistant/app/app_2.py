@@ -5,7 +5,7 @@
 
 from langchain_community.vectorstores import Chroma
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -127,10 +127,33 @@ def create_rag_chain():
     )
 
     # - Vectorstore ----
-    vectorstore = Chroma(
-        persist_directory=str(VECTORSTORE_PATH),
-        embedding_function=embedding_function
-    )
+    import warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+    try:
+        # Try to load with collection name first
+        vectorstore = Chroma(
+            persist_directory=str(VECTORSTORE_PATH),
+            embedding_function=embedding_function,
+            collection_name="bikes"
+        )
+    except Exception as e1:
+        try:
+            # Fallback: try without collection name
+            vectorstore = Chroma(
+                persist_directory=str(VECTORSTORE_PATH),
+                embedding_function=embedding_function
+            )
+        except Exception as e2:
+            # Last resort: create a minimal working vectorstore connection
+            import chromadb
+            client = chromadb.PersistentClient(path=str(VECTORSTORE_PATH))
+            collection = client.get_collection("bikes")
+            vectorstore = Chroma(
+                client=client,
+                collection_name="bikes",
+                embedding_function=embedding_function
+            )
 
     # - Retriever ----
     retriever = vectorstore.as_retriever(
@@ -180,7 +203,6 @@ def create_rag_chain():
     # - Create QA Chain ----
     document_prompt = PromptTemplate.from_template("Content:\n{page_content}\n\nMetadata:\n{metadata}")
 
-    # question_answer_chain = create_stuff_documents_chain(llm, qa_prompt, document_prompt=document_prompt)
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 
     # - Combine RAG + History Aware Retriever ----
