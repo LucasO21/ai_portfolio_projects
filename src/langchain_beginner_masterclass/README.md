@@ -1,4 +1,18 @@
 
+# LangChain Beginner Masterclass
 
-Video Series Link - https://www.youtube.com/watch?v=yF9kGESAi3M
-Video Series Github Link - https://github.com/bhancockio/langchain-crash-course
+This repository contains code examples and projects from a beginner masterclass series on LangChain, covering fundamental concepts and practical implementations for building AI-powered applications.
+
+## Topics Covered
+
+- **LangChain Basics**: Core concepts and components
+- **RAG (Retrieval Augmented Generation)**: Document processing, vector stores, and conversational AI
+- **Agents & Tools**: Building intelligent agents with custom tools and capabilities
+- **Integrations**: Working with OpenAI, Anthropic, Google AI, and other providers
+
+## Resources
+
+- **Video Series**: https://www.youtube.com/watch?v=yF9kGESAi3M
+- **Original Github**: https://github.com/bhancockio/langchain-crash-course
+- **Firecrawl**: https://www.firecrawl.dev
+- **Firebase Console**: https://console.firebase.google.com
