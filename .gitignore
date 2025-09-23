@@ -1,4 +1,5 @@
 .env
+.venv/
 database/
 src/cannondale_bikes_assistant/app/app.py
 

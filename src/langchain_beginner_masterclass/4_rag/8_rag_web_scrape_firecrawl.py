@@ -17,7 +17,7 @@ from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
 load_dotenv()
 
 # Define the persistent directory
-persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_firecrawl")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_firecrawl_2")
 
 # Define the ai and embedding model
 FIRECRAWL_API_KEY = get_env_key("firecrawl")
@@ -34,14 +34,14 @@ def create_vector_store():
 
     # Step 1: Crawl the website using FireCrawlLoader
     print("Begin crawling the website...")
-    # loader = FireCrawlLoader(api_key=api_key, url="https://techcrunch.com/latest", mode="scrape")
+    loader = FireCrawlLoader(api_key=api_key, url="https://apple.com", mode="scrape")
 
-    loader = FireCrawlLoader(
-        api_key=api_key,
-        api_url="https://api.firecrawl.dev",   # 👈 explicit
-        url="https://apple.com",
-        mode="scrape"
-    )
+    # loader = FireCrawlLoader(
+    #     api_key=api_key,
+    #     api_url="https://api.firecrawl.dev",   # 👈 explicit
+    #     url="https://apple.com",
+    #     mode="scrape"
+    # )
 
     docs = loader.load()
     print("Finished crawling the website.")
