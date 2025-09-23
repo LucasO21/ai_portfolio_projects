@@ -6,8 +6,16 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.tools import Tool
 from langchain_openai import ChatOpenAI
 
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.llms import get_llm
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
 # Load environment variables from .env file
 load_dotenv()
+
+# Define the llm
+OPENAI_API_KEY = get_env_key("openai")
+llm = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
 
 
 # Define Tools
@@ -47,13 +55,13 @@ tools = [
 # Load the correct JSON Chat Prompt from the hub
 prompt = hub.pull("hwchase17/structured-chat-agent")
 
-# Initialize a ChatOpenAI model
-llm = ChatOpenAI(model="gpt-4o")
 
 # Create a structured Chat Agent with Conversation Buffer Memory
 # ConversationBufferMemory stores the conversation history, allowing the agent to maintain context across interactions
 memory = ConversationBufferMemory(
-    memory_key="chat_history", return_messages=True)
+    memory_key="chat_history",
+    return_messages=True
+)
 
 # create_structured_chat_agent initializes a chat agent designed to interact using a structured prompt and tools
 # It combines the language model (llm), tools, and prompt to create an interactive agent

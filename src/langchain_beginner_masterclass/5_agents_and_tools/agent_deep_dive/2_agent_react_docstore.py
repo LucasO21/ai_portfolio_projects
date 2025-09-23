@@ -11,13 +11,19 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import Tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.llms import get_llm
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
 # Load environment variables from .env file
 load_dotenv()
 
+# Define the llm
+OPENAI_API_KEY = get_env_key("openai")
+llm = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
+
 # Load the existing Chroma vector store
-current_dir = os.path.dirname(os.path.abspath(__file__))
-db_dir = os.path.join(current_dir, "..", "..", "4_rag", "db")
-persistent_directory = os.path.join(db_dir, "chroma_db_with_metadata")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_with_metadata")
 
 # Check if the Chroma vector store already exists
 if os.path.exists(persistent_directory):
@@ -33,8 +39,10 @@ else:
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
 # Load the existing vector store with the embedding function
-db = Chroma(persist_directory=persistent_directory,
-            embedding_function=embeddings)
+db = Chroma(
+    persist_directory=persistent_directory,
+    embedding_function=embeddings
+)
 
 # Create a retriever for querying the vector store
 # `search_type` specifies the type of search (e.g., similarity)
@@ -43,9 +51,6 @@ retriever = db.as_retriever(
     search_type="similarity",
     search_kwargs={"k": 3},
 )
-
-# Create a ChatOpenAI model
-llm = ChatOpenAI(model="gpt-4o")
 
 # Contextualize question prompt
 # This system prompt helps the AI understand that it should reformulate the question
@@ -101,7 +106,9 @@ question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 
 # Create a retrieval chain that combines the history-aware retriever and the question answering chain
 rag_chain = create_retrieval_chain(
-    history_aware_retriever, question_answer_chain)
+    history_aware_retriever,
+    question_answer_chain
+)
 
 
 # Set Up ReAct Agent with Document Store Retriever
