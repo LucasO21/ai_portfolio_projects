@@ -5,11 +5,11 @@ from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
 # Define the directory containing the text files and the persistent directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-books_dir = os.path.join(current_dir, "books")
-db_dir = os.path.join(current_dir, "db")
-persistent_directory = os.path.join(db_dir, "chroma_db_with_metadata")
+books_dir = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "books")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_with_metadata")
 
 print(f"Books directory: {books_dir}")
 print(f"Persistent directory: {persistent_directory}")
@@ -50,7 +50,7 @@ if not os.path.exists(persistent_directory):
     print("\n--- Creating embeddings ---")
     embeddings = OpenAIEmbeddings(
         model="text-embedding-3-small"
-    )  # Update to a valid embedding model if needed
+    )
     print("\n--- Finished creating embeddings ---")
 
     # Create the vector store and persist it

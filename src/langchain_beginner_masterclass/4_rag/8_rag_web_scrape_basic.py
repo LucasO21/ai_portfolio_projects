@@ -1,4 +1,5 @@
 import os
+from pprint import pprint
 
 from dotenv import load_dotenv
 from langchain.text_splitter import CharacterTextSplitter
@@ -6,13 +7,21 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.llms import get_llm
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
 # Load environment variables from .env
 load_dotenv()
 
 # Define the persistent directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-db_dir = os.path.join(current_dir, "db")
-persistent_directory = os.path.join(db_dir, "chroma_db_apple")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_apple")
+
+# Define the ai and embedding model
+OPENAI_API_KEY = get_env_key("openai")
+llm = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
+
+
 
 # Step 1: Scrape the content from apple.com using WebBaseLoader
 # WebBaseLoader loads web pages and extracts their content

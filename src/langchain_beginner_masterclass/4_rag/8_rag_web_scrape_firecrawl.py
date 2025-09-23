@@ -1,18 +1,28 @@
 import os
+from pprint import pprint
+from IPython.display import display, Markdown
 
 from dotenv import load_dotenv
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.document_loaders import FireCrawlLoader
+# from firecrawl import FirecrawlApp
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
+
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.llms import get_llm
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
 
 # Load environment variables from .env
 load_dotenv()
 
 # Define the persistent directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-db_dir = os.path.join(current_dir, "db")
-persistent_directory = os.path.join(db_dir, "chroma_db_firecrawl")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_firecrawl")
+
+# Define the ai and embedding model
+FIRECRAWL_API_KEY = get_env_key("firecrawl")
+OPENAI_API_KEY = get_env_key("openai")
+llm = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
 
 
 def create_vector_store():
@@ -24,8 +34,15 @@ def create_vector_store():
 
     # Step 1: Crawl the website using FireCrawlLoader
     print("Begin crawling the website...")
+    # loader = FireCrawlLoader(api_key=api_key, url="https://techcrunch.com/latest", mode="scrape")
+
     loader = FireCrawlLoader(
-        api_key=api_key, url="https://apple.com", mode="scrape")
+        api_key=api_key,
+        api_url="https://api.firecrawl.dev",   # 👈 explicit
+        url="https://apple.com",
+        mode="scrape"
+    )
+
     docs = loader.load()
     print("Finished crawling the website.")
 
@@ -64,8 +81,7 @@ else:
 
 # Load the vector store with the embeddings
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-db = Chroma(persist_directory=persistent_directory,
-            embedding_function=embeddings)
+db = Chroma(persist_directory=persistent_directory, embedding_function=embeddings)
 
 
 # Step 5: Query the vector store

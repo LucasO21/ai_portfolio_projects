@@ -3,17 +3,20 @@ import os
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
+# OpenAI API Key
+OPENAI_API_KEY = get_env_key("openai")
+
 # Define the persistent directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-db_dir = os.path.join(current_dir, "db")
-persistent_directory = os.path.join(db_dir, "chroma_db_with_metadata")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_with_metadata")
 
 # Define the embedding model
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
 # Load the existing vector store with the embedding function
-db = Chroma(persist_directory=persistent_directory,
-            embedding_function=embeddings)
+db = Chroma(persist_directory=persistent_directory, embedding_function=embeddings)
 
 # Define the user's question
 query = "How did Juliet die?"

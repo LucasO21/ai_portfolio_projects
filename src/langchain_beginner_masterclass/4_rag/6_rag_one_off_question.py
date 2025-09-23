@@ -1,24 +1,28 @@
 import os
+from pprint import pprint
 
 from dotenv import load_dotenv
 from langchain_community.vectorstores import Chroma
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.llms import get_llm
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
 # Load environment variables from .env
 load_dotenv()
 
+OPENAI_API_KEY = get_env_key("openai")
+
 # Define the persistent directory
-current_dir = os.path.dirname(os.path.abspath(__file__))
-persistent_directory = os.path.join(
-    current_dir, "db", "chroma_db_with_metadata")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_with_metadata")
 
 # Define the embedding model
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
 # Load the existing vector store with the embedding function
-db = Chroma(persist_directory=persistent_directory,
-            embedding_function=embeddings)
+db = Chroma(persist_directory=persistent_directory, embedding_function=embeddings)
 
 # Define the user's question
 query = "How can I learn more about LangChain?"
@@ -45,7 +49,7 @@ combined_input = (
 )
 
 # Create a ChatOpenAI model
-model = ChatOpenAI(model="gpt-4o")
+model = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
 
 # Define the messages for the model
 messages = [
@@ -61,4 +65,4 @@ print("\n--- Generated Response ---")
 # print("Full result:")
 # print(result)
 print("Content only:")
-print(result.content)
+pprint(result.content)

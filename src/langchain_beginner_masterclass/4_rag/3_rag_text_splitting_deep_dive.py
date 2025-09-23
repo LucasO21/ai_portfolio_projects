@@ -11,10 +11,15 @@ from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
+# OpenAI API Key
+OPENAI_API_KEY = get_env_key("openai")
+
 # Define the directory containing the text file
-current_dir = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(current_dir, "books", "romeo_and_juliet.txt")
-db_dir = os.path.join(current_dir, "db")
+file_path = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "books", "romeo_and_juliet.txt")
+db_dir = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database")
 
 # Check if the text file exists
 if not os.path.exists(file_path):
@@ -85,15 +90,15 @@ create_vector_store(rec_char_docs, "chroma_db_rec_char")
 print("\n--- Using Custom Splitting ---")
 
 
-class CustomTextSplitter(TextSplitter):
-    def split_text(self, text):
-        # Custom logic for splitting text
-        return text.split("\n\n")  # Example: split by paragraphs
+# class CustomTextSplitter(TextSplitter):
+#     def split_text(self, text):
+#         # Custom logic for splitting text
+#         return text.split("\n\n")  # Example: split by paragraphs
 
 
-custom_splitter = CustomTextSplitter()
-custom_docs = custom_splitter.split_documents(documents)
-create_vector_store(custom_docs, "chroma_db_custom")
+# custom_splitter = CustomTextSplitter()
+# custom_docs = custom_splitter.split_documents(documents)
+# create_vector_store(custom_docs, "chroma_db_custom")
 
 
 # Function to query a vector store
@@ -125,6 +130,6 @@ query = "How did Juliet die?"
 # Query each vector store
 query_vector_store("chroma_db_char", query)
 query_vector_store("chroma_db_sent", query)
-query_vector_store("chroma_db_token", query)
+# query_vector_store("chroma_db_token", query)
 query_vector_store("chroma_db_rec_char", query)
-query_vector_store("chroma_db_custom", query)
+# query_vector_store("chroma_db_custom", query)
