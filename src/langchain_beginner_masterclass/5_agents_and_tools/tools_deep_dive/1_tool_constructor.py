@@ -7,6 +7,19 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain_core.tools import StructuredTool, Tool
 from langchain_openai import ChatOpenAI
 
+from pprint import pprint
+
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.llms import get_llm
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
+# Load environment variables from .env
+load_dotenv()
+
+# Define the ai and embedding model
+OPENAI_API_KEY = get_env_key("openai")
+LLM = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
+
 
 # Functions for the tools
 def greet_user(name: str) -> str:
@@ -56,7 +69,7 @@ tools = [
 ]
 
 # Initialize a ChatOpenAI model
-llm = ChatOpenAI(model="gpt-4o")
+llm = LLM
 
 # Pull the prompt template from the hub
 prompt = hub.pull("hwchase17/openai-tools-agent")

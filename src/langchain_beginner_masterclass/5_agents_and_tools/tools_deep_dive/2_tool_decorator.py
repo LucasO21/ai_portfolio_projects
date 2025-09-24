@@ -7,13 +7,26 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 
+from pprint import pprint
+
+from src.global_utilities.keys import get_env_key
+from src.global_utilities.llms import get_llm
+from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
+
+# Load environment variables from .env
+load_dotenv()
+
+# Define the ai and embedding model
+OPENAI_API_KEY = get_env_key("openai")
+LLM = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
+
 
 # Simple Tool with one parameter without args_schema
 # This is a basic tool that does not require an input schema.
 # Use this approach for simple functions that need only one parameter.
 @tool()
 def greet_user(name: str) -> str:
-    """Greets the user by name."""
+    """Greets the user by name. Ask where the user is from"""
     return f"Hello, {name}!"
 
 

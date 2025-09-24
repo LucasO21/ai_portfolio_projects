@@ -5,3 +5,5 @@ src/cannondale_bikes_assistant/app/app.py
 
 # Allow PNG screenshots for README
 !src/cannondale_bikes_assistant/png/*.png
+
+src/langchain_beginner_masterclass/5_agents_and_tools/tools_deep_dive/3_tool_base_tool.py

@@ -17,15 +17,16 @@ from src.global_utilities.paths import LANGCHAIN_BEGINNER_MASTERCLASS_DIR
 load_dotenv()
 
 # Define the persistent directory
-persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_firecrawl_2")
+# persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_firecrawl_2")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "4_rag", "database", "chroma_db_cannondale")
 
 # Define the ai and embedding model
 FIRECRAWL_API_KEY = get_env_key("firecrawl")
 OPENAI_API_KEY = get_env_key("openai")
-llm = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
+LLM = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
 
 
-def create_vector_store():
+def create_vector_store(url, split_docs = True, split_size = 1000, split_overlap = 0):
     """Crawl the website, split the content, create embeddings, and persist the vector store."""
     # Define the Firecrawl API key
     api_key = os.getenv("FIRECRAWL_API_KEY")
@@ -34,7 +35,7 @@ def create_vector_store():
 
     # Step 1: Crawl the website using FireCrawlLoader
     print("Begin crawling the website...")
-    loader = FireCrawlLoader(api_key=api_key, url="https://apple.com", mode="scrape")
+    loader = FireCrawlLoader(api_key=api_key, url=url, mode="scrape")
 
     # loader = FireCrawlLoader(
     #     api_key=api_key,
@@ -53,13 +54,16 @@ def create_vector_store():
                 doc.metadata[key] = ", ".join(map(str, value))
 
     # Step 2: Split the crawled content into chunks
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-    split_docs = text_splitter.split_documents(docs)
+    if split_docs:
+        text_splitter = CharacterTextSplitter(chunk_size=split_size, chunk_overlap=split_overlap)
+        split_docs = text_splitter.split_documents(docs)
 
-    # Display information about the split documents
-    print("\n--- Document Chunks Information ---")
-    print(f"Number of document chunks: {len(split_docs)}")
-    print(f"Sample chunk:\n{split_docs[0].page_content}\n")
+        # Display information about the split documents
+        print("\n--- Document Chunks Information ---")
+        print(f"Number of document chunks: {len(split_docs)}")
+        print(f"Sample chunk:\n{split_docs[0].page_content}\n")
+    else:
+        split_docs = docs
 
     # Step 3: Create embeddings for the document chunks
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
@@ -74,7 +78,10 @@ def create_vector_store():
 
 # Check if the Chroma vector store already exists
 if not os.path.exists(persistent_directory):
-    create_vector_store()
+    create_vector_store(
+        url = "https://www.cannondale.com/en-us/bikes",
+        split_docs = False
+    )
 else:
     print(
         f"Vector store {persistent_directory} already exists. No need to initialize.")
@@ -105,7 +112,7 @@ def query_vector_store(query):
 
 
 # Define the user's question
-query = "Apple Intelligence?"
+query = "Synapsse LAB71 SmartSense"
 
 # Query the vector store with the user's question
 query_vector_store(query)
