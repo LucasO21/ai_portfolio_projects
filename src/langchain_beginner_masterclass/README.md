@@ -14,5 +14,6 @@ This repository contains code examples and projects from a beginner masterclass 
 
 - **Video Series**: https://www.youtube.com/watch?v=yF9kGESAi3M
 - **Original Github**: https://github.com/bhancockio/langchain-crash-course
+- **Tyler AI Firecrawl Tutorial**: https://github.com/tylerprogramming/course-firecrawl
 - **Firecrawl**: https://www.firecrawl.dev
 - **Firebase Console**: https://console.firebase.google.com

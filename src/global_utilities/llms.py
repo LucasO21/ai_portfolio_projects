@@ -4,7 +4,7 @@ import logging
 import os
 
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_google_genai import ChatGoogleGenerativeAI?
 from langchain_anthropic import ChatAnthropic
 
 load_dotenv()
@@ -24,10 +24,10 @@ def get_llm(model_provider, model_name, api_key, temperature=0.1):
         print(f"Provider: OpenAI | Model: {model_name} | Temp: {temperature}")
         return ChatOpenAI(model=model_name, api_key=OPENAI_API_KEY, temperature=temperature)
 
-    elif model_provider == "gemini":
-        # logger.info(f"Provider: Gemini | Model: {model_name} | Temp: {temperature}")
-        print(f"Provider: Gemini | Model: {model_name} | Temp: {temperature}")
-        return ChatGoogleGenerativeAI(model=model_name, api_key=GOOGLE_API_KEY, temperature=temperature)
+    # elif model_provider == "gemini":
+    #     # logger.info(f"Provider: Gemini | Model: {model_name} | Temp: {temperature}")
+    #     print(f"Provider: Gemini | Model: {model_name} | Temp: {temperature}")
+    #     return ChatGoogleGenerativeAI(model=model_name, api_key=GOOGLE_API_KEY, temperature=temperature)
 
     elif model_provider == "anthropic":
         # logger.info(f"Provider: Anthropic | Model: {model_name} | Temp: {temperature}")
