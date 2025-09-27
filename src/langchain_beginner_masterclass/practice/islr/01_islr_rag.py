@@ -7,11 +7,13 @@ from langchain_community.document_loaders import TextLoader, PyPDFLoader, PyMuPD
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain import hub
 
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.schema import Document
 
 from src.global_utilities.keys import get_env_key
 from src.global_utilities.llms import get_llm
@@ -22,7 +24,9 @@ OPENAI_API_KEY = get_env_key("openai")
 LLM = get_llm("openai", "gpt-4o", OPENAI_API_KEY)
 
 # Define the persistent directory
-persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "practice", "islr", "database")
+persistent_directory = os.path.join(LANGCHAIN_BEGINNER_MASTERCLASS_DIR, "practice", "islr", "database", "chroma_db_with_metadata")
+if not os.path.exists(persistent_directory):
+    os.makedirs(persistent_directory)
 
 # Define the embedding model
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=OPENAI_API_KEY)
@@ -79,40 +83,36 @@ for i, chunk in enumerate(chunks):
     page_number_list.append(page_number)
 
 # Assign metadata to each chunk
-json_chunks = []
+docs_with_metadata = []
 for i, chunk in enumerate(chunks):
-    json_chunks.append({
-        "chunk_id": f"chunk_{i}",
-        "chapter_number": section_number_list[i],
-        "chapter_title": section_title_list[i],
-        "section_number": section_number_list[i],
-        "section_title": section_title_list[i],
-        "page_number": page_number_list[i],
-        "token_count": len(chunk),
-        "text": chunk
-    })
+    docs_with_metadata.append(Document(
+        page_content=chunk,
+        metadata={
+            "section_number": section_number_list[i],
+            "section_title": section_title_list[i],
+            "page_number": page_number_list[i],
+        }
+    ))
 
 # Display content and metadata
-pprint(json_chunks[250])
+pprint(docs_with_metadata[251].metadata)
+pprint(docs_with_metadata[251].page_content)
 
 # Count chunks with metadata
-pprint(f"Number of chunks with metadata: {len([chunk for chunk in json_chunks if chunk['section_number'] is not None])}")
-
-
-
-
-# Split the documents into chunks
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200, separator="\n")
-docs = text_splitter.split_documents(documents)
-len(docs)
+pprint(f"Number of chunks with metadata: {len([chunk for chunk in docs_with_metadata if chunk.metadata['section_number'] is not None])}")
 
 # Create the vector store and persist it automatically
-db = Chroma.from_documents(docs, embeddings, persist_directory=persistent_directory)
+vectorstore = Chroma.from_documents(
+    docs_with_metadata,
+    embeddings,
+    persist_directory=persistent_directory,
+    collection_name="islr_chunks"
+)
 
 # Retrieve the vector store
-db = Chroma(persist_directory=persistent_directory, embedding_function=embeddings)
+vectorstore = Chroma(persist_directory=persistent_directory, embedding_function=embeddings, collection_name="islr_chunks")
 
-retriever = db.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
 # Test the retriever
 query = "What is linear regression?"
@@ -121,7 +121,7 @@ docs = retriever.invoke(query)
 # Display the relevant results with metadata
 print("\n--- Relevant Documents ---")
 for i, doc in enumerate(docs, 1):
-    print(f"Document {i}:\n{doc.page_content}\n")
+    print(f"Document {i}:\n{doc.page_content[:100]}...\n")
     print(f"Source: {doc.metadata['source']}\n")
 
 
@@ -202,5 +202,41 @@ test_rag_pipeline("What is linear regression?. Site your source.")
 # ------------------------------------------------------------------------------
 # Agent  & Tools ----
 # ------------------------------------------------------------------------------
+from langchain_core.tools import Tool
+from langchain.agents import AgentExecutor, create_react_agent
+
+# Tool 1: Summarize output
+def summarize_output(*args, **kwargs):
+    return "Summarizes AI output into 3 bullet points."
+
+# Tool List
+tools = [
+    Tool(
+        name="Summarize Output",
+        func=summarize_output,
+        description="Summarizes AI output into 3 sentences.",
+    )
+]
+
+# Prompt Template
+prompt = hub.pull("hwchase17/react")
+
+# Create the ReAct agent using the create_react_agent function
+agent = create_react_agent(
+    llm=LLM,
+    tools=tools,
+    prompt=prompt,
+    stop_sequence=True,
+)
 
 
+# Create an agent executor from the agent and tools
+agent_executor = AgentExecutor.from_agent_and_tools(
+    agent=agent,
+    tools=tools,
+    verbose=True,
+)
+
+# Test the agent with sample queries
+response = agent_executor.invoke({"input": "What is linear regression?"})
+pprint(response)
