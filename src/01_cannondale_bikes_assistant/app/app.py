@@ -61,7 +61,7 @@ st.set_page_config(
 
 # Set OpenAI API Key in environment
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-os.environ["MONGODB_URI"] = st.secrets["MONGODB_URI"]
+os.environ["MONGO_DB_URI"] = st.secrets["MONGO_DB_URI"]
 
 st.title("🚴‍♂️ Cannondale Bike AI Assistant")
 st.markdown("*Powered by Specialized AI Tools*")
