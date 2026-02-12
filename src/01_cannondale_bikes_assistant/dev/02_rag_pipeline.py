@@ -17,6 +17,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.tools import BaseTool, StructuredTool
+
 
 from langchain.tools import tool
 from langchain.agents import create_openai_functions_agent, AgentExecutor
@@ -30,6 +32,7 @@ import sys
 from pathlib import Path
 from pprint import pprint
 import re
+import requests
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -61,9 +64,11 @@ embedding_function = OpenAIEmbeddings(
 
 # Load vectorstore
 vectorstore = MongoDBAtlasVectorSearch(
-    # documents = documents,
-    embedding = embedding_function,
-    collection = collection
+    embedding=embedding_function,
+    collection=collection,
+    index_name="vector_index",
+    text_key="text",
+    embedding_key="embedding"
 )
 
 # Create retriever
@@ -74,7 +79,7 @@ retriever = vectorstore.as_retriever(
 
 # Model
 model = ChatOpenAI(
-    model = 'gpt-4.1-mini',
+    model = 'gpt-4o',
     temperature = 0.1,
     api_key = OPENAI_API_KEY
 )
@@ -108,7 +113,8 @@ def summarize_bike_description(bike_query: str) -> str:
 
         # Create summary template
         summary_template = """
-        You are a Cannondale bike expert. Provide a CONCISE SUMMARY (3-4 sentences max) of the bike based on the context.
+        You are a Cannondale bike expert. Provide a CONCISE SUMMARY (3-4 sentences max) of the bike based
+        on the context.
 
         Context:
         {context}
@@ -145,6 +151,12 @@ def summarize_bike_description(bike_query: str) -> str:
 
         return summary_result
 
+
+# Test the summarize_bike_description tool
+# print(summarize_bike_description.invoke("Moterra SL LAB71"))
+
+# # Test the describe_bike_in_detail tool
+# print(describe_bike_in_detail.invoke("Moterra SL LAB71"))
 
 # Detailed tool
 @tool
@@ -226,6 +238,21 @@ def describe_bike_in_detail(bike_query: str) -> str:
 
 # Tool list
 tools = [summarize_bike_description, describe_bike_in_detail]
+raw_tools = [summarize_bike_description, describe_bike_in_detail]
+
+def ensure_base_tool(tool_obj):
+    """Normalize runtime tool objects so AgentExecutor always receives BaseTool values."""
+    if isinstance(tool_obj, BaseTool):
+        return tool_obj
+    if callable(tool_obj):
+        return StructuredTool.from_function(tool_obj)
+    raise TypeError(
+        f"Invalid tool type: {type(tool_obj).__name__}. "
+        "Expected a LangChain tool or callable."
+    )
+
+tools = [ensure_base_tool(t) for t in raw_tools]
+
 
 # Create agent prompt
 agent_prompt = ChatPromptTemplate.from_messages([

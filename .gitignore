@@ -7,6 +7,7 @@ src/tutorials
 
 # Allow PNG screenshots for README
 !src/cannondale_bikes_assistant/png/*.png
+src/01_cannondale_bikes_assistant/feedback/
 
 
 

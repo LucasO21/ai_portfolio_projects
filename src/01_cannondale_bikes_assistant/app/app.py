@@ -60,8 +60,10 @@ st.set_page_config(
 )
 
 # Set OpenAI API Key in environment
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-os.environ["MONGO_DB_URI"] = st.secrets["MONGO_DB_URI"]
+# os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+# os.environ["MONGO_DB_URI"] = st.secrets["MONGO_DB_URI"]
+OPENAI_API_KEY = get_env_key("openai")
+MONGO_DB_URI = os.getenv("MONGO_DB_URI")
 
 st.title("🚴‍♂️ Cannondale Bike AI Assistant")
 st.markdown("*Powered by Specialized AI Tools*")
@@ -107,6 +109,8 @@ if 'total_tokens' not in st.session_state:
     st.session_state.total_tokens = 0
 if 'total_cost' not in st.session_state:
     st.session_state.total_cost = 0.0
+if 'image_url_cache' not in st.session_state:
+    st.session_state.image_url_cache = {}
 
 # Initialize session state for agent
 if 'agent_executor' not in st.session_state:
@@ -123,10 +127,18 @@ if 'agent_executor' not in st.session_state:
         #     persist_directory=str(persist_directory),
         #     embedding_function=embedding_function
         # )
+        # vectorstore = MongoDBAtlasVectorSearch(
+        #     # documents = documents,
+        #     embedding = embedding_function,
+        #     collection = MONGO_COLLECTION
+        # )
+
         vectorstore = MongoDBAtlasVectorSearch(
-            # documents = documents,
-            embedding = embedding_function,
-            collection = MONGO_COLLECTION
+            embedding=embedding_function,
+            collection=MONGO_COLLECTION,
+            index_name="vector_index",
+            text_key="text",
+            embedding_key="embedding"
         )
 
         # Create retriever
@@ -156,7 +168,7 @@ if 'agent_executor' not in st.session_state:
                 A concise summary of the bike's key features and characteristics with image URL
             """
             # Get relevant documents to extract image URL
-            relevant_docs = retriever.get_relevant_documents(bike_query)
+            relevant_docs = retriever.invoke(bike_query)
 
             # Extract bike image URL from the first relevant document
             bike_image_url = None
@@ -170,7 +182,8 @@ if 'agent_executor' not in st.session_state:
 
             # Create summary template
             summary_template = """
-                You are a Cannondale bike expert. Provide a CONCISE SUMMARY (3-4 sentences max) of the bike based on the context.
+                You are a Cannondale bike expert. Provide a CONCISE SUMMARY (3-4 sentences max) of the bike based on
+                the context.
 
                 Context:
                 {context}
@@ -221,7 +234,7 @@ if 'agent_executor' not in st.session_state:
                 A detailed description including specifications, features, components, and technical details with metadata
             """
             # Get relevant documents to extract metadata
-            relevant_docs = retriever.get_relevant_documents(bike_query)
+            relevant_docs = retriever.invoke(bike_query)
 
             # Extract metadata
             bike_image_url = None
@@ -307,6 +320,10 @@ if 'agent_executor' not in st.session_state:
 
             Choose the appropriate tool based on the user's request tone and keywords. Always be helpful and informative.
 
+            IMPORTANT: When a tool returns a "Bike Image URL:", you MUST include that exact line verbatim at the end of
+            your response. Do NOT omit, rephrase, or summarize the image URL. Always preserve the format:
+            Bike Image URL: <url>
+
             For simple conversational responses, respond directly without using any tools.
             """),
             MessagesPlaceholder("chat_history"),
@@ -323,7 +340,8 @@ if 'agent_executor' not in st.session_state:
             tools=tools,
             verbose=False,
             handle_parsing_errors=True,
-            max_iterations=3
+            max_iterations=3,
+            return_intermediate_steps=True
         )
 
         # Wrap with message history
@@ -346,6 +364,10 @@ def is_valid_image_url(url):
     except requests.RequestException:
         return False
 
+def strip_image_url_line(text: str) -> str:
+    """Remove the 'Bike Image URL: ...' line from display text."""
+    return re.sub(r'\n*Bike Image URL:\s*https?://\S+', '', text).strip()
+
 def extract_url_from_text(text: str):
     """Extract URL from text with multiple patterns."""
     patterns = [
@@ -366,13 +388,13 @@ def extract_url_from_text(text: str):
 # Display chat messages
 for msg in msgs.messages:
     with st.chat_message(msg.type):
-        st.write(msg.content)
-
-        # Try to display image if it's an AI message
-        # if msg.type == "ai":
-        #     image_url = extract_url_from_text(msg.content)
-        #     if image_url and is_valid_image_url(image_url):
-        #         st.image(image_url, width=200, caption="Bike Image")
+        if msg.type == "ai" and isinstance(msg.content, str):
+            st.markdown(strip_image_url_line(msg.content))
+            cached_url = st.session_state.image_url_cache.get(msg.content)
+            if cached_url:
+                st.image(cached_url, width=200, caption="Bike Image")
+        else:
+            st.write(msg.content)
 
 # Chat input
 if question := st.chat_input("Ask about any Cannondale bike..."):
@@ -394,16 +416,27 @@ if question := st.chat_input("Ask about any Cannondale bike..."):
                 st.session_state.total_prompt_tokens += cb.prompt_tokens
                 st.session_state.total_completion_tokens += cb.completion_tokens
                 st.session_state.total_tokens += cb.total_tokens
-                st.session_state.total_cost += cb.total_cost
+                # st.session_state.total_cost += cb.total_cost
+                st.session_state.total_cost = (cb.prompt_tokens * (5/1000000)) + (cb.completion_tokens * (15/1000000))
 
             # Display AI response
             with st.chat_message("ai"):
-                st.markdown(response['output'])
+                st.markdown(strip_image_url_line(response['output']))
 
-                # # Try to display image
-                # image_url = extract_url_from_text(response['output'])
-                # if image_url and is_valid_image_url(image_url):
-                #     st.image(image_url, width=200, caption="Bike Image")
+                # Try to extract image URL from agent output first
+                image_url = extract_url_from_text(response['output'])
+
+                # Fallback: extract from intermediate tool steps if not in output
+                if not image_url and response.get('intermediate_steps'):
+                    for step in response['intermediate_steps']:
+                        if len(step) >= 2 and isinstance(step[1], str):
+                            image_url = extract_url_from_text(step[1])
+                            if image_url:
+                                break
+
+                if image_url and is_valid_image_url(image_url):
+                    st.session_state.image_url_cache[response['output']] = image_url
+                    st.image(image_url, width=200, caption="Bike Image")
 
             #! debug
             # Display AI response
