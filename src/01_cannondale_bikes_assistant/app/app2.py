@@ -120,26 +120,32 @@ def get_llm() -> ChatOpenAI:
 # HELPER FUNCTIONS
 # ==============================================================================
 
-def extract_image_urls_from_docs(docs: list) -> List[str]:
-    """Extract unique bike image URLs from retrieved documents."""
-    urls: List[str] = []
+def extract_image_urls_from_docs(docs: list) -> List[dict]:
+    """Extract unique bike image URLs and names from retrieved documents."""
+    results: List[dict] = []
     seen: set = set()
     for doc in docs:
         url = doc.metadata.get("bike_image_url")
         if url and url not in seen and isinstance(url, str) and url.startswith("http"):
-            urls.append(url)
+            name = doc.metadata.get("bike_model") or doc.metadata.get("bike_name") or "Cannondale Bike"
+            results.append({"url": url, "name": name})
             seen.add(url)
-    return urls
+    return results
 
 
 def strip_image_markers(text: str) -> str:
-    """Remove IMAGE_URL: markers from display text."""
-    return re.sub(r'\n*IMAGE_URL:\s*https?://\S+', '', text).strip()
+    """Remove IMAGE_URL: markers (including | name suffix) from display text."""
+    return re.sub(r'\n*IMAGE_URL:\s*https?://\S+.*', '', text).strip()
 
 
-def extract_urls_from_text(text: str) -> List[str]:
-    """Extract IMAGE_URL markers from agent response text."""
-    return re.findall(r'IMAGE_URL:\s*(https?://\S+)', text)
+def extract_urls_from_text(text: str) -> List[dict]:
+    """Extract IMAGE_URL markers (with optional bike name) from agent response text."""
+    results: List[dict] = []
+    for match in re.finditer(r'IMAGE_URL:\s*(https?://\S+?)(?:\s*\|\s*(.+?))?$', text, re.MULTILINE):
+        url = match.group(1)
+        name = match.group(2).strip() if match.group(2) else "Cannondale Bike"
+        results.append({"url": url, "name": name})
+    return results
 
 
 def parse_price(price_str) -> Optional[float]:
@@ -212,9 +218,9 @@ def search_bikes(
 
         output = f"Found {len(filtered)} matching bikes:\n\n" + "\n\n".join(results)
 
-        # Append image URLs
-        for url in extract_image_urls_from_docs(filtered):
-            output += f"\n\nIMAGE_URL: {url}"
+        # Append image URLs with bike names
+        for img in extract_image_urls_from_docs(filtered):
+            output += f"\n\nIMAGE_URL: {img['url']} | {img['name']}"
 
         return output
 
@@ -242,7 +248,7 @@ def get_bike_summary(bike_query: str) -> str:
         llm = get_llm()
 
         docs = retriever.invoke(bike_query)
-        image_urls = extract_image_urls_from_docs(docs)
+        image_data = extract_image_urls_from_docs(docs)
 
         summary_template = """You are a Cannondale bike expert. Provide a CONCISE SUMMARY (3-4 sentences max) of the bike.
 
@@ -270,8 +276,8 @@ Summary:"""
 
         result = chain.invoke(bike_query)
 
-        for url in image_urls:
-            result += f"\n\nIMAGE_URL: {url}"
+        for img in image_data:
+            result += f"\n\nIMAGE_URL: {img['url']} | {img['name']}"
 
         return result
 
@@ -299,7 +305,7 @@ def get_bike_details(bike_query: str) -> str:
         llm = get_llm()
 
         docs = retriever.invoke(bike_query)
-        image_urls = extract_image_urls_from_docs(docs)
+        image_data = extract_image_urls_from_docs(docs)
 
         # Extract metadata from top result
         metadata_section = ""
@@ -343,8 +349,8 @@ Detailed Description:"""
         result = chain.invoke(bike_query)
         result += metadata_section
 
-        for url in image_urls:
-            result += f"\n\nIMAGE_URL: {url}"
+        for img in image_data:
+            result += f"\n\nIMAGE_URL: {img['url']} | {img['name']}"
 
         return result
 
@@ -378,12 +384,12 @@ def compare_bikes(bike_names: str) -> str:
             names = names[:3]
 
         all_docs = []
-        all_image_urls: List[str] = []
+        all_image_data: List[dict] = []
         for name in names:
             docs = retriever.invoke(name)
             if docs:
                 all_docs.append(docs[0])
-                all_image_urls.extend(extract_image_urls_from_docs(docs[:1]))
+                all_image_data.extend(extract_image_urls_from_docs(docs[:1]))
 
         if len(all_docs) < 2:
             return "Could not find enough bikes to compare. Please check the bike names and try again."
@@ -422,10 +428,10 @@ Comparison:"""
 
         # Deduplicate image URLs
         seen: set = set()
-        for url in all_image_urls:
-            if url not in seen:
-                result += f"\n\nIMAGE_URL: {url}"
-                seen.add(url)
+        for img in all_image_data:
+            if img["url"] not in seen:
+                result += f"\n\nIMAGE_URL: {img['url']} | {img['name']}"
+                seen.add(img["url"])
 
         return result
 
@@ -470,7 +476,7 @@ def get_recommendation(
             if filtered:
                 docs = filtered
 
-        image_urls = extract_image_urls_from_docs(docs)
+        image_data = extract_image_urls_from_docs(docs)
 
         budget_str = f"${budget:,.0f}" if budget else "not specified"
         exp_str = experience_level if experience_level else "not specified"
@@ -478,7 +484,8 @@ def get_recommendation(
         # Build context from docs
         context_text = "\n\n".join(doc.page_content for doc in docs)
 
-        rec_template = """You are a Cannondale bike expert and cycling advisor. Recommend the best bike(s) for this rider.
+        rec_template = """
+            You are a Cannondale bike expert and cycling advisor. Recommend the best bike(s) for this rider.
 
 Context (available bikes):
 {context}
@@ -512,8 +519,8 @@ Recommendation:"""
 
         result = chain.invoke(query)
 
-        for url in image_urls:
-            result += f"\n\nIMAGE_URL: {url}"
+        for img in image_data:
+            result += f"\n\nIMAGE_URL: {img['url']} | {img['name']}"
 
         return result
 
@@ -681,8 +688,8 @@ for idx, msg in enumerate(msgs.messages):
     with st.chat_message(msg.type):
         if msg.type == "ai" and isinstance(msg.content, str):
             st.markdown(msg.content)  # Content is already clean (no IMAGE_URL markers)
-            for url in st.session_state.message_images.get(idx, []):
-                st.image(url, width=IMAGE_DISPLAY_WIDTH)
+            for img in st.session_state.message_images.get(idx, []):
+                st.image(img["url"], width=IMAGE_DISPLAY_WIDTH, caption=img["name"])
         else:
             st.write(msg.content)
 
@@ -715,38 +722,38 @@ if question := st.chat_input("Ask about any Cannondale bike..."):
 
             output_text: str = response["output"]
 
-            # Extract image URLs from output text
-            image_urls = extract_urls_from_text(output_text)
+            # Extract image data from output text
+            image_data = extract_urls_from_text(output_text)
 
             # Fallback: check intermediate steps
-            if not image_urls and response.get("intermediate_steps"):
+            if not image_data and response.get("intermediate_steps"):
                 for step in response["intermediate_steps"]:
                     if len(step) >= 2 and isinstance(step[1], str):
-                        image_urls.extend(extract_urls_from_text(step[1]))
+                        image_data.extend(extract_urls_from_text(step[1]))
 
-            # Deduplicate while preserving order
+            # Deduplicate by URL while preserving order
             seen: set = set()
-            unique_urls: List[str] = []
-            for url in image_urls:
-                if url not in seen:
-                    unique_urls.append(url)
-                    seen.add(url)
-            image_urls = unique_urls
+            unique_images: List[dict] = []
+            for img in image_data:
+                if img["url"] not in seen:
+                    unique_images.append(img)
+                    seen.add(img["url"])
+            image_data = unique_images
 
             # Store clean text in message history (strip IMAGE_URL markers)
             clean_text = strip_image_markers(output_text)
             msgs.add_ai_message(clean_text)
 
-            # Store image URLs in separate session state dict, keyed by message index
+            # Store image data in separate session state dict, keyed by message index
             msg_idx = len(msgs.messages) - 1
-            if image_urls:
-                st.session_state.message_images[msg_idx] = image_urls
+            if image_data:
+                st.session_state.message_images[msg_idx] = image_data
 
             # Display response
             with st.chat_message("ai"):
                 st.markdown(clean_text)
-                for url in image_urls:
-                    st.image(url, width=IMAGE_DISPLAY_WIDTH)
+                for img in image_data:
+                    st.image(img["url"], width=IMAGE_DISPLAY_WIDTH, caption=img["name"])
 
         except Exception as e:
             with st.chat_message("ai"):
