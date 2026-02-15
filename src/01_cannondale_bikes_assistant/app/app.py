@@ -8,8 +8,8 @@
 from langchain_community.vectorstores import Chroma
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain.tools import tool
@@ -109,9 +109,6 @@ if 'total_tokens' not in st.session_state:
     st.session_state.total_tokens = 0
 if 'total_cost' not in st.session_state:
     st.session_state.total_cost = 0.0
-if 'image_url_cache' not in st.session_state:
-    st.session_state.image_url_cache = {}
-
 # Initialize session state for agent
 if 'agent_executor' not in st.session_state:
     with st.spinner("🔧 Initializing AI Tools..."):
@@ -344,15 +341,7 @@ if 'agent_executor' not in st.session_state:
             return_intermediate_steps=True
         )
 
-        # Wrap with message history
-        agent_with_history = RunnableWithMessageHistory(
-            agent_executor,
-            lambda session_id: msgs,
-            input_messages_key="input",
-            history_messages_key="chat_history",
-        )
-
-        st.session_state.agent_executor = agent_with_history
+        st.session_state.agent_executor = agent_executor
         st.success("✅ AI Tools Initialized Successfully!")
 
 # Helper functions for image display
@@ -366,7 +355,7 @@ def is_valid_image_url(url):
 
 def strip_image_url_line(text: str) -> str:
     """Remove the 'Bike Image URL: ...' line from display text."""
-    return re.sub(r'\n*Bike Image URL:\s*https?://\S+', '', text).strip()
+    return re.sub(r'\n*Bike Image URL:.*', '', text).strip()
 
 def extract_url_from_text(text: str):
     """Extract URL from text with multiple patterns."""
@@ -385,80 +374,60 @@ def extract_url_from_text(text: str):
 
     return None
 
-# Display chat messages
+# Display chat messages from history
 for msg in msgs.messages:
     with st.chat_message(msg.type):
         if msg.type == "ai" and isinstance(msg.content, str):
             st.markdown(strip_image_url_line(msg.content))
-            cached_url = st.session_state.image_url_cache.get(msg.content)
-            if cached_url:
-                st.image(cached_url, width=200, caption="Bike Image")
+            # Primary: image_url stored on the message; Fallback: extract from text
+            url = msg.additional_kwargs.get("image_url") or extract_url_from_text(msg.content)
+            if url:
+                st.image(url, width=200, caption="Bike Image")
         else:
             st.write(msg.content)
 
 # Chat input
 if question := st.chat_input("Ask about any Cannondale bike..."):
-    # Display user message first
+    # Add user message to history and display it
+    msgs.add_user_message(question)
     with st.chat_message("human"):
         st.write(question)
 
-    # Then show spinner while processing AI response
     with st.spinner("🔍 Analyzing with AI tools..."):
-        # Get response from agent with token tracking
         try:
+            # Pass chat history manually to the agent
             with get_openai_callback() as cb:
                 response = st.session_state.agent_executor.invoke(
-                    {"input": question},
-                    config={"configurable": {"session_id": "cannondale_session"}}
+                    {"input": question, "chat_history": msgs.messages[:-1]}
                 )
 
-                # Update token counters
                 st.session_state.total_prompt_tokens += cb.prompt_tokens
                 st.session_state.total_completion_tokens += cb.completion_tokens
                 st.session_state.total_tokens += cb.total_tokens
-                # st.session_state.total_cost += cb.total_cost
                 st.session_state.total_cost = (cb.prompt_tokens * (5/1000000)) + (cb.completion_tokens * (15/1000000))
 
-            # Display AI response
+            output_text = response['output']
+
+            # Extract image URL from agent output
+            image_url = extract_url_from_text(output_text)
+
+            # Fallback: extract from intermediate tool steps
+            if not image_url and response.get('intermediate_steps'):
+                for step in response['intermediate_steps']:
+                    if len(step) >= 2 and isinstance(step[1], str):
+                        image_url = extract_url_from_text(step[1])
+                        if image_url:
+                            break
+
+            # Store AI message WITH image_url baked into additional_kwargs
+            ai_kwargs = {"image_url": image_url} if image_url else {}
+            msgs.add_message(AIMessage(content=output_text, additional_kwargs=ai_kwargs))
+
+            # Display the response
             with st.chat_message("ai"):
-                st.markdown(strip_image_url_line(response['output']))
-
-                # Try to extract image URL from agent output first
-                image_url = extract_url_from_text(response['output'])
-
-                # Fallback: extract from intermediate tool steps if not in output
-                if not image_url and response.get('intermediate_steps'):
-                    for step in response['intermediate_steps']:
-                        if len(step) >= 2 and isinstance(step[1], str):
-                            image_url = extract_url_from_text(step[1])
-                            if image_url:
-                                break
-
-                if image_url and is_valid_image_url(image_url):
-                    st.session_state.image_url_cache[response['output']] = image_url
+                st.markdown(strip_image_url_line(output_text))
+                if image_url:
                     st.image(image_url, width=200, caption="Bike Image")
-
-            #! debug
-            # Display AI response
-            # with st.chat_message("ai"):
-            #     st.write(response['output'])
-
-            #     # DEBUG: Show what we're working with
-            #     st.write("**DEBUG INFO:**")
-            #     st.write(f"Response text: {response['output'][:200]}...")
-
-            #     image_url = extract_url_from_text(response['output'])
-            #     st.write(f"Extracted URL: {image_url}")
-
-            #     if image_url:
-            #         is_valid = is_valid_image_url(image_url)
-            #         st.write(f"URL is valid: {is_valid}")
-
-            #     # Try to display image
-            #     if image_url and is_valid_image_url(image_url):
-            #         st.image(image_url, width=200, caption="Bike Image")
-
-            #! end debug
 
         except Exception as e:
             with st.chat_message("ai"):
