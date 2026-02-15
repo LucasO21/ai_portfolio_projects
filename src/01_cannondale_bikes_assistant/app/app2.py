@@ -652,6 +652,10 @@ if len(msgs.messages) == 0:
         "What would you like to know?"
     )
 
+# Image Storage (keyed by message index — avoids reliance on additional_kwargs) ----
+if "message_images" not in st.session_state:
+    st.session_state.message_images = {}
+
 # Token Tracking ----
 if "total_prompt_tokens" not in st.session_state:
     st.session_state.total_prompt_tokens = 0
@@ -673,15 +677,11 @@ if "agent_executor" not in st.session_state:
 # CHAT HISTORY DISPLAY
 # ==============================================================================
 
-for msg in msgs.messages:
+for idx, msg in enumerate(msgs.messages):
     with st.chat_message(msg.type):
         if msg.type == "ai" and isinstance(msg.content, str):
-            st.markdown(strip_image_markers(msg.content))
-            # Display images from stored URLs or extracted from text
-            urls = msg.additional_kwargs.get("image_urls", [])
-            if not urls:
-                urls = extract_urls_from_text(msg.content)
-            for url in urls:
+            st.markdown(msg.content)  # Content is already clean (no IMAGE_URL markers)
+            for url in st.session_state.message_images.get(idx, []):
                 st.image(url, width=IMAGE_DISPLAY_WIDTH)
         else:
             st.write(msg.content)
@@ -733,13 +733,18 @@ if question := st.chat_input("Ask about any Cannondale bike..."):
                     seen.add(url)
             image_urls = unique_urls
 
-            # Store AI message with image URLs
-            ai_kwargs = {"image_urls": image_urls} if image_urls else {}
-            msgs.add_message(AIMessage(content=output_text, additional_kwargs=ai_kwargs))
+            # Store clean text in message history (strip IMAGE_URL markers)
+            clean_text = strip_image_markers(output_text)
+            msgs.add_ai_message(clean_text)
+
+            # Store image URLs in separate session state dict, keyed by message index
+            msg_idx = len(msgs.messages) - 1
+            if image_urls:
+                st.session_state.message_images[msg_idx] = image_urls
 
             # Display response
             with st.chat_message("ai"):
-                st.markdown(strip_image_markers(output_text))
+                st.markdown(clean_text)
                 for url in image_urls:
                     st.image(url, width=IMAGE_DISPLAY_WIDTH)
 
@@ -779,6 +784,7 @@ with st.sidebar:
     # Clear Chat ----
     if st.button("🗑️ Clear Chat", type="secondary"):
         msgs.clear()
+        st.session_state.message_images = {}
         msgs.add_ai_message(
             "👋 Hi! I'm your Cannondale bike assistant. What would you like to know?"
         )
