@@ -134,8 +134,11 @@ def extract_image_urls_from_docs(docs: list) -> List[dict]:
 
 
 def strip_image_markers(text: str) -> str:
-    """Remove IMAGE_URL: markers (including | name suffix) from display text."""
-    return re.sub(r'\n*IMAGE_URL:\s*https?://\S+.*', '', text).strip()
+    """Remove IMAGE_URL: markers and convert markdown images to links."""
+    text = re.sub(r'\n*IMAGE_URL:\s*https?://\S+.*', '', text)
+    # Convert ![alt](url) to [alt](url) so agent can't force inline images
+    text = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'[\1](\2)', text)
+    return text.strip()
 
 
 def extract_urls_from_text(text: str) -> List[dict]:
@@ -182,14 +185,24 @@ def search_bikes(
         Formatted list of matching bikes with key details and image URLs
     """
     try:
-        retriever = get_retriever()
+        vectorstore = get_vectorstore()
+        retriever = vectorstore.as_retriever(
+            search_type="similarity",
+            search_kwargs={"k": 10},
+        )
         docs = retriever.invoke(query)
 
-        # Post-filter by bike_type
+        # Post-filter by bike_type — search across all text fields, not just bike_name
         if bike_type:
+            bt = bike_type.lower()
             docs = [
                 d for d in docs
-                if bike_type.lower() in d.metadata.get("bike_name", "").lower()
+                if bt in d.page_content.lower()
+                or bt in d.metadata.get("bike_name", "").lower()
+                or bt in d.metadata.get("description_1", "").lower()
+                or bt in d.metadata.get("description_2", "").lower()
+                or bt in d.metadata.get("highlights", "").lower()
+                or bt in d.metadata.get("bike_image_url", "").lower()
             ]
 
         # Post-filter by price range
@@ -210,17 +223,18 @@ def search_bikes(
         for doc in filtered:
             m = doc.metadata
             desc = str(m.get("description_1", ""))[:150]
+            img_url = m.get("bike_image_url", "")
+            img_link = ""
+            if img_url and str(img_url).startswith("http"):
+                img_link = f"  [View Image]({img_url})"
             results.append(
                 f"**{m.get('bike_name', 'N/A')} - {m.get('bike_model', 'N/A')}**\n"
                 f"  Price: ${m.get('price', 'N/A')} | Color: {m.get('color', 'N/A')}\n"
-                f"  {desc}"
+                f"  {desc}\n"
+                f"{img_link}"
             )
 
         output = f"Found {len(filtered)} matching bikes:\n\n" + "\n\n".join(results)
-
-        # Append image URLs with bike names
-        for img in extract_image_urls_from_docs(filtered):
-            output += f"\n\nIMAGE_URL: {img['url']} | {img['name']}"
 
         return output
 
@@ -250,21 +264,22 @@ def get_bike_summary(bike_query: str) -> str:
         docs = retriever.invoke(bike_query)
         image_data = extract_image_urls_from_docs(docs)
 
-        summary_template = """You are a Cannondale bike expert. Provide a CONCISE SUMMARY (3-4 sentences max) of the bike.
+        summary_template = """
+        You are a Cannondale bike expert. Provide a CONCISE SUMMARY (3-4 sentences max) of the bike.
 
-Context:
-{context}
+            Context:
+            {context}
 
-Query: {question}
+            Query: {question}
 
-Instructions:
-- Keep it brief and focused on the most important features
-- Mention bike type, key technology, and target use
-- Include price if available
-- Maximum 4 sentences
-- Follow with 4-5 bullet points of the most important features and specs
+            Instructions:
+            - Keep it brief and focused on the most important features
+            - Mention bike type, key technology, and target use
+            - Include price if available
+            - Maximum 4 sentences
+            - Follow with 4-5 bullet points of the most important features and specs
 
-Summary:"""
+            Summary:"""
 
         prompt = ChatPromptTemplate.from_template(summary_template)
         chain = (
@@ -321,22 +336,23 @@ def get_bike_details(bike_query: str) -> str:
             if parts:
                 metadata_section = "\n\n**Additional Information:**\n" + "\n".join(f"- {p}" for p in parts)
 
-        detail_template = """You are a Cannondale bike expert. Provide a COMPREHENSIVE, DETAILED description of the bike.
+        detail_template = """You are a Cannondale bike expert. Provide a COMPREHENSIVE,
+        DETAILED description of the bike.
 
-Context:
-{context}
+            Context:
+            {context}
 
-Query: {question}
+            Query: {question}
 
-Instructions:
-- Provide extensive technical specifications
-- Include frame details, components, and drivetrain information
-- Mention pricing, colors, and model variations if available
-- Describe the bike's intended use and performance characteristics
-- Include any special technologies or features
-- Be thorough and technical in your response
+            Instructions:
+            - Provide extensive technical specifications
+            - Include frame details, components, and drivetrain information
+            - Mention pricing, colors, and model variations if available
+            - Describe the bike's intended use and performance characteristics
+            - Include any special technologies or features
+            - Be thorough and technical in your response
 
-Detailed Description:"""
+            Detailed Description:"""
 
         prompt = ChatPromptTemplate.from_template(detail_template)
         chain = (
@@ -402,19 +418,19 @@ def compare_bikes(bike_names: str) -> str:
 
         compare_template = """You are a Cannondale bike expert. Compare these bikes side by side.
 
-Context:
-{context}
+            Context:
+            {context}
 
-Bikes to compare: {question}
+            Bikes to compare: {question}
 
-Instructions:
-- Create a structured comparison
-- Compare: price, frame material, key components (fork, drivetrain, brakes, wheels, tires)
-- Highlight key differences and similarities
-- Provide a recommendation on which bike suits which type of rider
-- Use markdown formatting (tables, headers, bullet points) for readability
+            Instructions:
+            - Create a structured comparison
+            - Compare: price, frame material, key components (fork, drivetrain, brakes, wheels, tires)
+            - Highlight key differences and similarities
+            - Provide a recommendation on which bike suits which type of rider
+            - Use markdown formatting (tables, headers, bullet points) for readability
 
-Comparison:"""
+            Comparison:"""
 
         prompt = ChatPromptTemplate.from_template(compare_template)
         chain = (
@@ -485,24 +501,25 @@ def get_recommendation(
         context_text = "\n\n".join(doc.page_content for doc in docs)
 
         rec_template = """
-            You are a Cannondale bike expert and cycling advisor. Recommend the best bike(s) for this rider.
+            You are a Cannondale bike expert and cycling advisor. Recommend the best bike(s) for
+            this rider.
 
-Context (available bikes):
-{context}
+            Context (available bikes):
+            {context}
 
-Rider's needs: {question}
-Budget: {budget}
-Experience level: {experience}
+            Rider's needs: {question}
+            Budget: {budget}
+            Experience level: {experience}
 
-Instructions:
-- Recommend 1-3 bikes that best match the rider's needs
-- Explain WHY each recommendation is suitable
-- Consider the rider's experience level when making suggestions
-- Mention price and key features for each recommendation
-- If budget is specified, prioritize bikes within budget
-- Provide a clear top pick with reasoning
+            Instructions:
+            - Recommend 1-3 bikes that best match the rider's needs
+            - Explain WHY each recommendation is suitable
+            - Consider the rider's experience level when making suggestions
+            - Mention price and key features for each recommendation
+            - If budget is specified, prioritize bikes within budget
+            - Provide a clear top pick with reasoning
 
-Recommendation:"""
+            Recommendation:"""
 
         prompt = ChatPromptTemplate.from_template(rec_template)
         chain = (
@@ -567,6 +584,7 @@ TOOL SELECTION GUIDELINES:
    - Keywords: "recommend", "suggest", "best for", "should I get", "what bike for"
 
 RESPONSE GUIDELINES:
+- Use H3 for headers and H4/H5 for sub-headers.
 - Always be helpful, enthusiastic, and knowledgeable about cycling
 - Format comparisons in clear, readable tables when appropriate
 - Provide actionable insights, not just raw data
@@ -603,7 +621,7 @@ def create_agent_executor() -> AgentExecutor:
 # ==============================================================================
 
 st.set_page_config(
-    page_title="Cannondale Bike Expert v2",
+    page_title="Cannondale Bike Expert",
     page_icon="🚴‍♂️",
     layout="centered",
 )
@@ -616,9 +634,9 @@ st.write("---")
 with st.expander("💡 Sample Questions - Try These!"):
     st.markdown("**🔍 Search & Filter** (uses search_bikes tool):")
     st.markdown("""
-    - Show me mountain bikes under $5,000
+    - Show me mountain bikes under $5000
     - What gravel bikes do you have?
-    - List electric bikes between $4,000 and $8,000
+    - List electric bikes between $4000 and $8000
     """)
     st.markdown("**📝 Quick Summaries** (uses get_bike_summary tool):")
     st.markdown("""
@@ -767,16 +785,16 @@ if question := st.chat_input("Ask about any Cannondale bike..."):
 
 with st.sidebar:
 
-    st.markdown("### 🔧 Available Tools")
-    st.markdown("""
-    1. **🔍 Search Bikes** - Find & filter by criteria
-    2. **📝 Bike Summary** - Quick overview
-    3. **📋 Bike Details** - Full specifications
-    4. **⚖️ Compare Bikes** - Side-by-side comparison
-    5. **💡 Recommendation** - Personalized suggestions
-    """)
+    # st.markdown("### 🔧 Available Tools")
+    # st.markdown("""
+    # 1. **🔍 Search Bikes** - Find & filter by criteria
+    # 2. **📝 Bike Summary** - Quick overview
+    # 3. **📋 Bike Details** - Full specifications
+    # 4. **⚖️ Compare Bikes** - Side-by-side comparison
+    # 5. **💡 Recommendation** - Personalized suggestions
+    # """)
 
-    st.write("---")
+    # st.write("---")
 
     # Token Usage ----
     with st.expander("📊 Token Usage & Cost"):
