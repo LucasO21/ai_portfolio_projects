@@ -626,8 +626,8 @@ st.set_page_config(
     layout="centered",
 )
 
-st.title("🚴‍♂️ Cannondale Bike AI Assistant v2")
-st.markdown("*Powered by 5 Specialized AI Tools*")
+st.title("🚴‍♂️ Cannondale Bike AI Assistant")
+st.markdown("**Powered by 5 Specialized AI Tools**: Search, Summary, Details, Compare & Recommend Tools")
 st.write("---")
 
 # Sample Questions ----
