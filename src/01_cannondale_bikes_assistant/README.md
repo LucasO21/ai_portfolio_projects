@@ -240,16 +240,20 @@ The search tool retrieves bikes via semantic similarity, then post-filters by th
 **Query:** "Compare the Synapse Carbon vs SuperSix EVO"
 
 <div align="center">
-<img src="png/example_comparison_table.png" alt="Comparison table of Synapse Carbon vs SuperSix EVO with specs" width="800">
+<img src="png/comparison.png" alt="Side-by-side comparison of Synapse Carbon vs SuperSix EVO" width="800">
 </div>
 
 The comparison tool retrieves data for each bike independently, builds a combined context, and generates a structured table covering frame, drivetrain, brakes, wheels, and pricing — along with recommendations for which rider each bike suits.
 
+### Conversational Follow-ups
+
+**Query:** "Put the previous information in a table"
+
 <div align="center">
-<img src="png/example_comparison.png" alt="Comparison results with bike images and recommendations" width="800">
+<img src="png/follow_up.png" alt="Follow-up query reformatting the comparison into a table" width="800">
 </div>
 
-Each comparison includes product images pulled from bike metadata, giving users a visual reference alongside the technical breakdown.
+Chat history persists across the session, so the agent can reformat, refine, or extend previous answers without the user restating context.
 
 ---
 
@@ -263,7 +267,7 @@ src/01_cannondale_bikes_assistant/
 ├── dev/
 │   ├── 01_create_vectorstore.py # Data ingestion & embedding pipeline
 │   ├── 02_rag_pipeline.py       # RAG experimentation notebook
-│   └── 03_rag_pipeline_v2.py    # RAG v2 experimentation
+│   └── 03_rag_pipeline_v2.py    # RAG v2 experimentation with tools
 ├── database/
 │   └── bikes_csv/
 │       ├── bikes_version_1.csv  # Initial scraped bike data
