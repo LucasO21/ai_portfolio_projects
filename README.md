@@ -155,4 +155,4 @@ SOFTWARE.
 
 ---
 
-*This repository represents my ongoing exploration of AI technologies and serves as a practical portfolio of AI applications.*
+<!-- *This repository represents my ongoing exploration of AI technologies and serves as a practical portfolio of AI applications.* -->
