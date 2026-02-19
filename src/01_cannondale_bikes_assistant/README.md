@@ -30,35 +30,35 @@ What makes this implementation interesting is the **tool-calling agent architect
 The system uses an **agent-based architecture** where GPT-4o decides which specialized tool to use based on your question. Ask for a "quick summary" and it uses the summary tool. Ask to "compare the Synapse vs CAAD13" and it routes to the comparison tool. Each tool retrieves relevant bike data from MongoDB via vector similarity search, applies its own prompt template, and returns formatted results with bike images.
 
 ```
-                        ┌─────────────────────┐
+                        ┌─────────────────────-┐
                         │     User Query       │
                         │  (Streamlit Chat)    │
                         └──────────┬───────────┘
                                    │
-                        ┌──────────▼───────────┐
+                        ┌──────────▼───────────-┐
                         │   GPT-4o Agent        │
                         │  (Tool Selection)     │
-                        └──────────┬───────────┘
+                        └──────────┬───────────-┘
                                    │
-              ┌────────────────────┼────────────────────┐
+              ┌────────────────────┼────────────-────────┐
               │          │         │         │           │
-     ┌────────▼──┐ ┌─────▼────┐ ┌─▼──────┐ ┌▼────────┐ ┌▼───────────┐
-     │  Search   │ │ Summary  │ │Details │ │Compare │ │Recommend  │
-     │  Bikes    │ │  Tool    │ │ Tool   │ │ Tool   │ │  Tool     │
-     └────────┬──┘ └─────┬────┘ └─┬──────┘ └┬────────┘ └┬───────────┘
-              │          │        │          │           │
-              └──────────┴────────┼──────────┴───────────┘
+     ┌────────▼──┐ ┌─────▼────┐ ┌─▼──────┐ ┌▼────────-┐ ┌▼───────────-┐
+     │  Search   │ │ Summary  │ │Details │ │Compare   │ │Recommend    │
+     │  Bikes    │ │  Tool    │ │ Tool   │ │ Tool     │ │  Tool       │
+     └────────┬──┘ └─────┬────┘ └─┬──────┘ └-┬────────┘ └-┬───────────┘
+              │          │        │          │            │
+              └──────────┴────────┼──────────┴────────-───┘
                                   │
-                     ┌────────────▼────────────┐
+                     ┌────────────▼───────────-─┐
                      │   MongoDB Atlas          │
                      │   Vector Search          │
                      │  (text-embedding-ada-002)│
                      └────────────┬─────────────┘
                                   │
-                     ┌────────────▼────────────┐
+                     ┌────────────▼─────────-───┐
                      │   Formatted Response     │
                      │  + Bike Images           │
-                     └─────────────────────────┘
+                     └───────────────────────-──┘
 ```
 
 ### The Pipeline
