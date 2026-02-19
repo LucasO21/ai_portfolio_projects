@@ -114,7 +114,7 @@ This repository is actively maintained and expanded as I explore new AI technolo
 - Each project can be run independently
 - Environment isolation ensures clean dependency management
 
-## Hosting on Hugging Face
+<!-- ## Hosting on Hugging Face
 ```
 title: Cannondale Bikes Assistant
 emoji: 💻
@@ -125,7 +125,7 @@ pinned: false
 license: mit
 short_description: Cannondale Bikes AI Assistant with Tools
 
-```
+``` -->
 
 ## 📄 License
 
