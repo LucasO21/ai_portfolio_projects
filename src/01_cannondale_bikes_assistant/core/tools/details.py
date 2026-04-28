@@ -90,3 +90,36 @@ def get_bike_details(bike_query: str) -> str:
 
     except Exception as e:
         return f"Error generating details: {str(e)}"
+
+
+# =============================================================================
+# Manual test blocks — run individually as VS Code interactive cells (# %%)
+# How to run:
+#   cd ai_portfolio_projects
+#   PYTHONPATH=src poetry run python src/01_cannondale_bikes_assistant/core/tools/details.py
+# Or select a cell in VS Code and run with Shift+Enter (Python Interactive).
+# =============================================================================
+
+# %% [Setup] Path + imports
+import sys
+from pathlib import Path
+
+_project_dir = Path(__file__).resolve().parents[2]  # → 01_cannondale_bikes_assistant/
+if str(_project_dir) not in sys.path:
+    sys.path.insert(0, str(_project_dir))
+
+from core.tools.details import get_bike_details  # noqa: E402
+
+# %% [Test 1] Specific bike by name
+result_specific = get_bike_details.invoke("SuperSix EVO")
+print(result_specific)
+
+# %% [Test 2] Descriptive query (specs/technical language)
+result_specs = get_bike_details.invoke("Jekyll 1 full suspension specs")
+print(result_specs)
+
+# %% [Test 3] Vague query — tests retriever fallback behavior
+result_vague = get_bike_details.invoke("lightweight road bike")
+print(result_vague)
+
+# %%
