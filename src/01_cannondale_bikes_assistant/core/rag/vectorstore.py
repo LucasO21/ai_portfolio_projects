@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 # Make `core` importable no matter how this file is run.
@@ -9,39 +10,43 @@ if str(_project_dir) not in sys.path:
     sys.path.insert(0, str(_project_dir))
 
 from langchain_mongodb import MongoDBAtlasVectorSearch
-from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
 
 from core.config import get_settings
+from core.rag.embeddings import build_embeddings
 
 
+@lru_cache(maxsize=1)
 def build_vectorstore() -> MongoDBAtlasVectorSearch:
+    """Return a cached MongoDBAtlasVectorSearch connected to the Atlas cluster.
+
+    @lru_cache(maxsize=1) means:
+      - First call: opens a MongoClient, builds the vectorstore, stores it.
+      - Every subsequent call: returns the same object — no new network connection.
+    The MongoClient held inside is long-lived by design: PyMongo manages a
+    connection pool and reconnects automatically if the connection drops.
+
+    Embedding model comes from build_embeddings() (also lru_cache'd), so
+    swapping the embedding model in Phase 1 requires only a .env change.
+    """
     s = get_settings()
 
-    # Step 1: open a connection to your Atlas cluster
+    # Step 1: open a connection to your Atlas cluster.
     client = MongoClient(s.mongo_uri)
 
-    # Step 2: point at the right database and collection
+    # Step 2: point at the right database and collection.
     # This is where your 218 bike documents live.
     collection = client[s.mongo_db_name][s.mongo_collection]
 
-    # Step 3: build the embedding model
-    # This is what converts a text query into a vector so Atlas can
-    # compare it against the stored embeddings.
-    embeddings = OpenAIEmbeddings(
-        model=s.embedding_model,
-        api_key=s.openai_key,  # type: ignore[arg-type]
-    )
-
-    # Step 4: wrap it all in LangChain's MongoDBAtlasVectorSearch
-    # - collection: where the documents are
-    # - embedding: how to turn a query string into a vector
-    # - index_name: the Atlas Vector Search index to query against
-    # - text_key: the field in each document that holds the text ("text")
-    # - embedding_key: the field that holds the stored vector ("embedding")
+    # Step 3: wrap it all in LangChain's MongoDBAtlasVectorSearch.
+    # - collection:     where the documents are
+    # - embedding:      how to turn a query string into a vector (from embeddings.py)
+    # - index_name:     the Atlas Vector Search index to query against
+    # - text_key:       field in each document that holds the text
+    # - embedding_key:  field that holds the stored vector
     return MongoDBAtlasVectorSearch(
         collection=collection,
-        embedding=embeddings,
+        embedding=build_embeddings(),
         index_name=s.vector_index_name,
         text_key="text",
         embedding_key="embedding",
@@ -53,18 +58,8 @@ def build_vectorstore() -> MongoDBAtlasVectorSearch:
 # Does NOT run a search yet — that's the next file (retriever.py).
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    import sys
-    from pathlib import Path
-
-    # Tell Python where to find the `core` package.
-    # parents[0] = core/rag/
-    # parents[1] = core/
-    # parents[2] = 01_cannondale_bikes_assistant/   <-- this is what we need on the path
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-    from pymongo import MongoClient
-    from core.config import get_settings
-
+    # sys, Path, MongoClient, and get_settings are already imported at module level.
+    # sys.path is already patched at module level too — nothing to repeat here.
     s = get_settings()
     client = MongoClient(s.mongo_uri)
     collection = client[s.mongo_db_name][s.mongo_collection]

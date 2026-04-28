@@ -4,7 +4,7 @@ overview: A phased upgrade plan that is also a structured learning exercise—ge
 todos:
   - id: phase0_cleanup
     content: "Phase 0: Delete legacy files, set up pydantic-settings + core/ with docstrings and section comments; add dev/ smoke scripts; extract tools; prompts in files; pytest/ruff/mypy CI"
-    status: pending
+    status: in_progress
   - id: phase1_rag
     content: "Phase 1: RAG pipeline (embeddings, data model, Atlas pre-filters, hybrid, reranker, chunking) with dev/ scripts that print retrieval output for fixed queries"
     status: pending
@@ -30,6 +30,52 @@ isProject: false
 ---
 
 # Cannondale Bikes Assistant — Upgrade Plan
+
+## Progress Tracker
+
+### Phase 0 — Foundation
+| File | Status | Notes |
+| ---- | ------ | ----- |
+| `core/__init__.py` | ✅ done | |
+| `core/config.py` | ✅ done | reads .env, validates keys, Settings class |
+| `core/rag/__init__.py` | ✅ done | |
+| `core/rag/vectorstore.py` | ✅ done | now uses build_embeddings(), lru_cache added |
+| `core/rag/retriever.py` | ✅ done | vector search working, returns top-k bikes |
+| `core/rag/embeddings.py` | ✅ done | build_embeddings() factory, lru_cache, smoke test |
+| `core/llm.py` | ✅ done | build_llm() factory, lru_cache, smoke test |
+| `core/tools/` | ✅ done | search, summary, details, compare, recommend + __init__ |
+| `core/tools/_helpers.py` | ✅ done | parse_price, extract_image_urls_from_docs |
+| `core/prompts/` | ✅ done | __init__ + system/summary/details/compare/recommend.md |
+| `dev/README.md` | ✅ done | how to run each phase script |
+| `dev/phase_00_config_smoke.py` | ✅ done | verifies settings, imports, Atlas connection |
+| Atlas vector index | ✅ done | `vector_index` created on `bikes_collection` |
+| `core/agent/` | ⬜ todo | Phase 2 |
+| `tests/` | ⬜ todo | |
+
+### Phase 1 — RAG Upgrade
+| Item | Status |
+| ---- | ------ |
+| Switch to `text-embedding-3-small` | ⬜ todo |
+| Atlas pre-filters (price, category) | ⬜ todo |
+| Cohere reranker | ⬜ todo |
+
+### Phase 2 — LangGraph Agent
+| Item | Status |
+| ---- | ------ |
+| `core/agent/state.py` | ⬜ todo |
+| `core/agent/nodes.py` | ⬜ todo |
+| `core/agent/graph.py` | ⬜ todo |
+
+### Phase 3 — Evaluation
+| Item | Status |
+| ---- | ------ |
+| Golden queries | ⬜ todo |
+| Ragas eval script | ⬜ todo |
+
+### Phase 4 — Streamlit UI
+| Item | Status |
+| ---- | ------ |
+| `app/streamlit_app.py` | ⬜ todo (only after Phase 3 passes) |
 
 ## Goal
 
