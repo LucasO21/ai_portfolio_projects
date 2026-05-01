@@ -8,7 +8,9 @@
       "mcp__playwright__browser_evaluate",
       "mcp__playwright__browser_snapshot",
       "Bash(pkill:*)",
-      "mcp__playwright__browser_close"
+      "mcp__playwright__browser_close",
+      "Bash(poetry add *)",
+      "Bash(pip index *)"
     ]
   }
 }

@@ -32,6 +32,7 @@ onnxruntime = "1.16.3"
 pulsar-client = "3.2.0"
 streamlit = "^1.51.0"
 pydantic-settings = "^2.14.0"
+langchain-cohere = "0.1.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.3"
