@@ -108,3 +108,44 @@ def get_recommendation(
 
     except Exception as e:
         return f"Error generating recommendation: {str(e)}"
+
+
+# =============================================================================
+# Manual test blocks — run individually as VS Code interactive cells (# %%)
+# How to run:
+#   cd ai_portfolio_projects
+#   PYTHONPATH=src poetry run python src/01_cannondale_bikes_assistant/core/tools/recommend.py
+# Or select a cell in VS Code and run with Shift+Enter (Python Interactive).
+# =============================================================================
+
+## %% [Setup] Path + imports
+import sys
+from pathlib import Path
+
+_project_dir = Path(__file__).resolve().parents[2]  # → 01_cannondale_bikes_assistant/
+if str(_project_dir) not in sys.path:
+    sys.path.insert(0, str(_project_dir))
+
+from core.tools.recommend import get_recommendation  # noqa: E402
+
+## %% [Test 1] Query only — no budget or experience
+result_basic = get_recommendation.invoke({"query": "trail riding on rough terrain"})
+print(result_basic)
+
+## %% [Test 2] Query + budget
+result_budget = get_recommendation.invoke({"query": "gravel riding", "budget": 3500})
+print(result_budget)
+
+## %% [Test 3] Query + budget + experience level
+result_full = get_recommendation.invoke({
+    "query": "fast road racing",
+    "budget": 5000,
+    "experience_level": "advanced",
+})
+print(result_full)
+
+## %% [Test 4] Budget filter removes everything — tests fallback to all docs
+result_low_budget = get_recommendation.invoke({"query": "mountain bike", "budget": 100})
+print(result_low_budget)
+
+## %%

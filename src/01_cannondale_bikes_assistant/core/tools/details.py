@@ -35,6 +35,7 @@ from core.rag.retriever import build_retriever
 from core.tools._helpers import extract_image_urls_from_docs
 
 
+
 @tool
 def get_bike_details(bike_query: str) -> str:
     """Provide comprehensive, detailed specifications and analysis of a Cannondale bike.
@@ -100,7 +101,7 @@ def get_bike_details(bike_query: str) -> str:
 # Or select a cell in VS Code and run with Shift+Enter (Python Interactive).
 # =============================================================================
 
-# %% [Setup] Path + imports
+## %% [Setup] Path + imports
 import sys
 from pathlib import Path
 
@@ -110,16 +111,17 @@ if str(_project_dir) not in sys.path:
 
 from core.tools.details import get_bike_details  # noqa: E402
 
-# %% [Test 1] Specific bike by name
+## %% [Test 1] Specific bike by name
 result_specific = get_bike_details.invoke("SuperSix EVO")
 print(result_specific)
 
-# %% [Test 2] Descriptive query (specs/technical language)
+## %% [Test 2] Descriptive query (specs/technical language)
 result_specs = get_bike_details.invoke("Jekyll 1 full suspension specs")
 print(result_specs)
 
-# %% [Test 3] Vague query — tests retriever fallback behavior
+
+## %% [Test 3] Vague query — tests retriever fallback behavior
 result_vague = get_bike_details.invoke("lightweight road bike")
 print(result_vague)
 
-# %%
+## %%
