@@ -7,10 +7,10 @@ todos:
     status: done
   - id: phase1_rag
     content: "Phase 1: RAG pipeline — upgrade retriever, add Cohere reranker, in-script tests"
-    status: in_progress
+    status: done
   - id: phase2_langgraph
     content: "Phase 2: LangGraph agent — state, nodes, graph, in-script invoke + stream tests"
-    status: pending
+    status: done
   - id: phase3_ui
     content: "Phase 3: Streamlit app — thin wiring to core/, streaming, citations, catalog"
     status: pending
@@ -44,7 +44,7 @@ isProject: false
 | `core/config.py` | ✅ done | pydantic-settings, validates keys |
 | `core/rag/__init__.py` | ✅ done | |
 | `core/rag/embeddings.py` | ✅ done | `build_embeddings()` factory, lru_cache |
-| `core/rag/vectorstore.py` | ✅ done | `build_embeddings()`, lru_cache |
+| `core/rag/vectorstore.py` | ✅ done | `build_vectorstore()`, lru_cache |
 | `core/rag/retriever.py` | ✅ done | vector search, returns top-k bikes |
 | `core/llm.py` | ✅ done | `build_llm()` factory, lru_cache |
 | `core/tools/` | ✅ done | search, summary, details, compare, recommend + `__init__` |
@@ -53,23 +53,29 @@ isProject: false
 | `dev/phase_00_config_smoke.py` | ✅ done | verifies settings, imports, Atlas connection |
 | Atlas vector index | ✅ done | `vector_index` on `bikes_collection` |
 
-### Phase 1 — RAG Pipeline (done)
+### Phase 1 — RAG Pipeline ✅
 
 | Item | Status | Notes |
 | ---- | ------ | ----- |
-| Cohere reranker | ⏭ skipped | No API key — reranker.py exists but unused |
-| Upgrade retriever | ✅ done | `core/rag/retriever.py` — falls back to plain vector search |
-| In-script retrieval tests | ✅ done | `if __name__` block verified, 5 queries returning results |
+| `core/rag/reranker.py` | ✅ done | `build_reranker()`, `rerank_docs()`, `## %%` test cells |
+| Upgrade retriever | ✅ done | Wires Cohere via `ContextualCompressionRetriever` when `COHERE_API_KEY` is set; falls back to plain vector search otherwise. Candidate `k = max(20, final_k * 4)`, reranks down to `final_k` |
+| In-script retrieval tests | ✅ done | `if __name__` block — 5 queries + before/after rerank comparison |
 
-### Phase 2 — Agent
+### Phase 2 — Agent ✅
+
+Design diverged from the original plan: instead of a multi-node graph with
+`classify_intent`, `call_tool`, and `generate_response`, the implementation is a
+minimal ReAct / tool-calling loop. The LLM decides intent, picks tools, and
+chains them implicitly via message history. Cleaner and the standard LangGraph
+pattern.
 
 | Item | Status | File |
 | ---- | ------ | ---- |
-| `core/agent/state.py` | ⬜ todo | AgentState TypedDict |
-| `core/agent/nodes.py` | ⬜ todo | node functions |
-| `core/agent/graph.py` | ⬜ todo | StateGraph wiring |
-| In-script invoke test | ⬜ todo | `## %%` blocks in `graph.py` |
-| In-script stream test | ⬜ todo | `## %%` blocks in `graph.py` |
+| `core/agent/state.py` | ✅ done | `AgentState` TypedDict — `messages` only, with `add_messages` reducer |
+| `core/agent/nodes.py` | ✅ done | Single `call_model` node, lru_cache'd LLM with tools bound, system prompt prepended each call |
+| `core/agent/graph.py` | ✅ done | `START → model → (tool_calls?) → ToolNode → model → END`, uses prebuilt `ToolNode` |
+| In-script invoke test | ✅ done | Verified end-to-end with correct tool selection |
+| In-script stream test | ✅ done | Streaming chunks verified |
 
 ### Phase 3 — App
 
@@ -190,33 +196,47 @@ Each file has `## %%` cell blocks at the bottom (same pattern as existing tools 
 
 ---
 
-## Phase 2 — LangGraph Agent
+## Phase 2 — LangGraph Agent ✅ done
 
-**Goal:** replace the legacy `AgentExecutor` pattern with a proper `StateGraph`. Each node is a small, testable function.
+**Goal:** replace the legacy `AgentExecutor` pattern with a proper `StateGraph`.
 
-### What to build (Phase 2)
+### What was built (Phase 2)
+
+The design simplified during implementation: rather than three custom nodes
+(`classify_intent`, `call_tool`, `generate_response`) with a multi-field state,
+the agent is a ReAct / tool-calling loop. The LLM sees the full message history
+on every turn and decides whether to call a tool or return a final answer.
+LangGraph's prebuilt `ToolNode` handles tool execution.
 
 **`core/agent/state.py`**
 
-- `AgentState` as a `TypedDict`: `messages`, `intent`, `retrieved_bikes`, `citations`, `answer`.
-- Field-level comments explaining what each field holds and when it is populated.
+- `AgentState` as a `TypedDict` with a single field: `messages: Annotated[list[BaseMessage], add_messages]`.
+- The `add_messages` reducer appends new messages instead of overwriting — this
+  is what preserves history across tool round-trips.
+- Extra fields (`intent`, `retrieved_bikes`, `citations`) were dropped: the LLM
+  has access to all of that implicitly via message history. They can be added
+  later if a citation panel or eval harness needs structured access.
 
 **`core/agent/nodes.py`**
 
-- One function per node: `classify_intent`, `call_tool`, `generate_response`.
-- Each function: docstring with inputs → outputs, what it appends to state.
+- One node: `call_model(state)` — prepends a `SystemMessage` (loaded via
+  `load_prompt("system")`) to the message list and invokes the LLM-with-tools.
+- Returns `{"messages": [response]}` so `add_messages` appends the AI response.
+- LLM-with-tools is built once via `@lru_cache` to avoid re-binding tools on every call.
 
 **`core/agent/graph.py`**
 
-- Wire nodes into `StateGraph`: intent classify → route → tool call → generate.
-- In-script test blocks at bottom:
-  - `## %% [invoke]` — one hard-coded query, `graph.invoke(...)`, print final answer + retrieved bike names.
-  - `## %% [stream]` — same query with `graph.stream(...)`, print chunks as they arrive.
+- `START → model → (conditional) → ToolNode → model → ... → END`.
+- `_should_continue(state)` inspects the last message: if it's an `AIMessage`
+  with `tool_calls`, route to `tools`; otherwise `END`.
+- After `tools` runs, edge always loops back to `model` so the LLM can either
+  chain another tool or produce a final answer.
+- Compiled `graph` is exported at module level for import elsewhere.
 
-### Gate to Phase 3
+### Phase 2 gate (cleared)
 
-- Invoke block runs end-to-end and returns a grounded answer.
-- Stream block prints chunks (proves streaming works before wiring Streamlit).
+- Invoke runs end-to-end and returns a grounded answer.
+- Stream prints chunks as they arrive (proves streaming works before wiring Streamlit).
 
 ---
 

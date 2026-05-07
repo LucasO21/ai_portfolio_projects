@@ -37,14 +37,13 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 # Make `core` importable when this file is run directly.
 _project_dir = Path(__file__).resolve().parents[2]
 if str(_project_dir) not in sys.path:
     sys.path.insert(0, str(_project_dir))
 
-from langchain.retrievers import ContextualCompressionRetriever
 from langchain_core.retrievers import BaseRetriever
 
 from core.config import get_settings
@@ -55,7 +54,7 @@ from core.rag.vectorstore import build_vectorstore
 # Section 1 — Retriever factory
 # ---------------------------------------------------------------------------
 
-def build_retriever(k: Optional[int] = None) -> Union[ContextualCompressionRetriever, BaseRetriever]:
+def build_retriever(k: Optional[int] = None) -> BaseRetriever:
     """Return a retriever that yields k documents for a query string.
 
     With COHERE_API_KEY set:
@@ -82,8 +81,8 @@ def build_retriever(k: Optional[int] = None) -> Union[ContextualCompressionRetri
             search_kwargs={"k": candidate_k},
         )
 
-        # Import here to avoid a hard dependency on langchain_cohere when
-        # Cohere is not configured (fallback path never touches reranker.py).
+        from langchain_classic.retrievers import ContextualCompressionRetriever
+
         from core.rag.reranker import build_reranker
 
         return ContextualCompressionRetriever(
