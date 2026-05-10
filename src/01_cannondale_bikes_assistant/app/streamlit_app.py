@@ -109,14 +109,30 @@ def _stream_assistant_turn() -> None:
     pre_count = len(st.session_state.messages)
 
     placeholder = st.empty()
+    with placeholder:
+        status = st.status("Thinking…", expanded=False)
+
     buf: list[str] = []
     last_values: dict[str, Any] | None = None
+    streaming_started = False
 
     for mode, chunk in cast(Any, graph).stream(
         {"messages": list(st.session_state.messages)},
-        stream_mode=["custom", "values"],
+        stream_mode=["custom", "updates", "values"],
     ):
-        if mode == "custom" and isinstance(chunk, str) and chunk:
+        if mode == "updates" and isinstance(chunk, dict) and not streaming_started:
+            if "tools" in chunk:
+                tool_msgs = chunk["tools"].get("messages", []) if isinstance(chunk["tools"], dict) else []
+                names = [getattr(m, "name", None) for m in tool_msgs if getattr(m, "name", None)]
+                if names:
+                    status.update(label=f"Calling tool: {', '.join(names)}…", state="running")
+            elif "model" in chunk:
+                status.update(label="Drafting answer…", state="running")
+        elif mode == "custom" and isinstance(chunk, str) and chunk:
+            if not streaming_started:
+                streaming_started = True
+                status.update(label="Answer", state="complete")
+                placeholder.empty()
             buf.append(chunk)
             placeholder.markdown(_strip_image_markers("".join(buf)) + "▌")
         elif mode == "values" and isinstance(chunk, dict):
