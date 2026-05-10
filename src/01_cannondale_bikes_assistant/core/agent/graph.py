@@ -24,8 +24,12 @@ Entry point for all callers:
   result = graph.invoke({"messages": [HumanMessage(content="...")]})
 
   from core.agent import graph                          # streaming
-  for chunk in graph.stream({"messages": [HumanMessage(content="...")]}):
-      print(chunk)
+  # Token deltas (custom) + full state after each step (values):
+  for mode, chunk in graph.stream(
+      {"messages": [HumanMessage(content="...")]},
+      stream_mode=["custom", "values"],
+  ):
+      print(mode, chunk)
 
 Run this file directly to test the graph end-to-end without Streamlit:
   PYTHONPATH=src/01_cannondale_bikes_assistant poetry run python \\

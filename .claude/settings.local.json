@@ -10,7 +10,12 @@
       "Bash(pkill:*)",
       "mcp__playwright__browser_close",
       "Bash(poetry add *)",
-      "Bash(pip index *)"
+      "Bash(pip index *)",
+      "Bash(poetry show *)",
+      "Bash(poetry remove *)",
+      "Bash(grep:*)",
+      "Bash(PYTHONPATH=src/01_cannondale_bikes_assistant poetry run python src/01_cannondale_bikes_assistant/core/agent/graph.py)",
+      "Bash(poetry run *)"
     ]
   }
 }

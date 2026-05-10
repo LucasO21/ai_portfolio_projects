@@ -58,6 +58,10 @@ ignore = ["W291", "W292", "W293"]
 [tool.ruff.lint.isort]
 known-first-party = ["core", "global_utilities"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/01_cannondale_bikes_assistant/app/streamlit_app.py" = ["E402"]
+"src/01_cannondale_bikes_assistant/core/agent/nodes.py" = ["E402"]
+
 [tool.pytest.ini_options]
 # Make `from core...` and `from global_utilities...` work from tests without sys.path hacks.
 # The cannondale package directory starts with a digit, so we put it on PYTHONPATH
@@ -80,6 +84,7 @@ exclude = [
     "src/01_cannondale_bikes_assistant/dev/_archive/",
     "src/01_cannondale_bikes_assistant/app/app\\.py$",
     "src/01_cannondale_bikes_assistant/app/app2\\.py$",
+    "src/01_cannondale_bikes_assistant/app/streamlit_app\\.py$",
 ]
 
 # LangChain's `@tool` decorator and `Runnable` pipe composition have weak

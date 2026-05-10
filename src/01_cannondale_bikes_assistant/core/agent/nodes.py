@@ -22,6 +22,7 @@ Flow reminder:
   call_model → [has tool_calls?] → yes → ToolNode → call_model → ...
                                  → no  → END
 """
+
 from __future__ import annotations
 
 import sys
@@ -32,17 +33,20 @@ _project_dir = Path(__file__).resolve().parents[2]
 if str(_project_dir) not in sys.path:
     sys.path.insert(0, str(_project_dir))
 
-from langchain_core.messages import SystemMessage
+from typing import Any
+
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, SystemMessage
+from langgraph.config import get_stream_writer
 
 from core.agent.state import AgentState
 from core.llm import build_llm
 from core.prompts import load_prompt
 from core.tools import TOOLS
 
-
 # ---------------------------------------------------------------------------
 # Section 1 — LLM with tools bound (cached)
 # ---------------------------------------------------------------------------
+
 
 @lru_cache(maxsize=1)
 def _llm_with_tools():
@@ -55,9 +59,30 @@ def _llm_with_tools():
     return build_llm().bind_tools(TOOLS)
 
 
+def _chunk_text_for_stream(chunk: BaseMessage) -> str:
+    """Return plain-text deltas from a streamed AI message chunk for custom mode."""
+    if not isinstance(chunk, (AIMessage, AIMessageChunk)):
+        return ""
+    content = chunk.content
+    if isinstance(content, str) and content:
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type") == "text":
+                t = block.get("text")
+                if isinstance(t, str):
+                    parts.append(t)
+        return "".join(parts)
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # Section 2 — call_model node
 # ---------------------------------------------------------------------------
+
 
 def call_model(state: AgentState) -> dict:
     """Invoke the LLM with the current message history.
@@ -77,6 +102,12 @@ def call_model(state: AgentState) -> dict:
     After this node, graph.py checks if the returned AIMessage has tool_calls.
     If yes → ToolNode runs the requested tool and loops back here.
     If no  → the message is the final answer and the graph ends.
+
+    Streaming:
+      Uses ``llm.stream`` and forwards text deltas through LangGraph's custom
+      stream writer so ``graph.stream(..., stream_mode=[..., "custom"])`` can
+      drive ``st.write_stream``. When no stream consumer is attached, the writer
+      is a no-op (see ``langgraph.runtime``).
     """
     system = SystemMessage(content=load_prompt("system"))
 
@@ -84,5 +115,16 @@ def call_model(state: AgentState) -> dict:
     # tool round-trips have already happened.
     messages = [system] + list(state["messages"])
 
-    response = _llm_with_tools().invoke(messages)
-    return {"messages": [response]}
+    writer = get_stream_writer()
+    llm = _llm_with_tools()
+    merged: Any = None
+    for chunk in llm.stream(messages):
+        text = _chunk_text_for_stream(chunk)
+        if text:
+            writer(text)
+        merged = chunk if merged is None else merged + chunk
+
+    if merged is None:
+        merged = llm.invoke(messages)
+
+    return {"messages": [merged]}
