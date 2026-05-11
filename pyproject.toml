@@ -7,15 +7,11 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.10.0,<3.13"
-langchain-openai = "^0.1.8"
+langchain-openai = ">=0.3"
 python-dotenv = "^1.0.1"
-langchain = "^0.2.1"
-langchain-community = "0.2.6"
-langchain-chroma = "0.1.4"
+langchain = ">=0.3"
+langchain-community = ">=0.3"
 chromadb = "0.4.15"
-langchain-anthropic = "^0.1.15"
-langchain-google-genai = "^1.0.5"
-langchain-google-firestore = "^0.3.0"
 firestore = "^0.0.8"
 tiktoken = "^0.7.0"
 bs4 = "^0.0.2"
@@ -26,11 +22,18 @@ tavily-python = "^0.3.3"
 ipykernel = "^6.30.1"
 pypdf = "^6.1.0"
 pymupdf = "^1.26.4"
-langchain-mongodb = "^0.1.1"
+langchain-mongodb = ">=0.3"
 pymongo = "^4.6.1"
 onnxruntime = "1.16.3"
 pulsar-client = "3.2.0"
 streamlit = "^1.51.0"
+pydantic-settings = "^2.14.0"
+langgraph = "^1.1.10"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.3"
+ruff = "^0.15.12"
+mypy = "^1.20.2"
 
 [tool.pyright]
 # https://github.com/microsoft/pyright/blob/main/docs/configuration.md
@@ -38,9 +41,59 @@ useLibraryCodeForTypes = true
 exclude = [".cache"]
 
 [tool.ruff]
-# https://beta.ruff.rs/docs/configuration/
-select = ['E', 'W', 'F', 'I', 'B', 'C4', 'ARG', 'SIM']
-ignore = ['W291', 'W292', 'W293']
+# https://docs.astral.sh/ruff/configuration/
+# In ruff 0.2+, lint rules live under [tool.ruff.lint].
+line-length = 110
+target-version = "py311"
+exclude = [
+    ".venv",
+    "src/archive",
+    "src/01_cannondale_bikes_assistant/dev/_archive",
+]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "ARG", "SIM"]
+ignore = ["W291", "W292", "W293"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "global_utilities"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/01_cannondale_bikes_assistant/app/streamlit_app.py" = ["E402"]
+"src/01_cannondale_bikes_assistant/core/agent/nodes.py" = ["E402"]
+
+[tool.pytest.ini_options]
+# Make `from core...` and `from global_utilities...` work from tests without sys.path hacks.
+# The cannondale package directory starts with a digit, so we put it on PYTHONPATH
+# and treat `core/` as the import root for that project.
+pythonpath = [
+    "src/01_cannondale_bikes_assistant",
+    "src",
+]
+testpaths = ["src/01_cannondale_bikes_assistant/tests"]
+addopts = "-q"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_ignores = true
+explicit_package_bases = true
+exclude = [
+    "src/archive/",
+    "src/01_cannondale_bikes_assistant/dev/_archive/",
+    "src/01_cannondale_bikes_assistant/app/app\\.py$",
+    "src/01_cannondale_bikes_assistant/app/app2\\.py$",
+    "src/01_cannondale_bikes_assistant/app/streamlit_app\\.py$",
+]
+
+# LangChain's `@tool` decorator and `Runnable` pipe composition have weak
+# type stubs ((``@tool`` returns ``Callable[..., Any]`` instead of ``BaseTool``,
+# pipe expressions infer to ``Any``). We accept the resulting noise inside
+# ``core.tools.*`` rather than littering call sites with ``cast`` / ignores.
+[[tool.mypy.overrides]]
+module = ["core.tools.*"]
+disable_error_code = ["return-value", "var-annotated"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
