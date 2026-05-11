@@ -19,6 +19,12 @@ src/01_cannondale_bikes_assistant/.claude
 # Local development
 src/01_cannondale_bikes_assistant/dev/
 
+# Project planning / Docker / type config
+PLAN.md
+Dockerfile
+.dockerignore
+pyrightconfig.json
+
 
 
 

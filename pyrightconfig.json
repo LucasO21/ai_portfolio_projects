@@ -1,8 +1,0 @@
-{
-  "pythonVersion": "3.11",
-  "venvPath": ".",
-  "venv": ".venv",
-  "extraPaths": [
-    "src/01_cannondale_bikes_assistant"
-  ]
-}
