@@ -10,6 +10,10 @@ src/tutorials
 src/01_cannondale_bikes_assistant/feedback/
 src/01_cannondale_bikes_assistant/app/app.py
 
+.vscode/
+.playright-mcp/
+.claude/
+
 
 
 
