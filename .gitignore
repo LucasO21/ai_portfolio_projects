@@ -10,9 +10,14 @@ src/tutorials
 src/01_cannondale_bikes_assistant/feedback/
 src/01_cannondale_bikes_assistant/app/app.py
 
+# Hidden files
 .vscode/
 .playright-mcp/
 .claude/
+src/01_cannondale_bikes_assistant/.claude
+
+# Local development
+src/01_cannondale_bikes_assistant/dev/
 
 
 
